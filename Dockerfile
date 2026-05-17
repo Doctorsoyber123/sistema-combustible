@@ -35,5 +35,5 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 # limpiar cache Laravel
 RUN php artisan config:clear
 RUN php artisan cache:clear
-
+RUN php artisan migrate --force
 EXPOSE 80
