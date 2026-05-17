@@ -36,4 +36,5 @@ RUN chown -R www-data:www-data storage bootstrap/cache
 RUN php artisan config:clear
 RUN php artisan cache:clear
 RUN php artisan migrate --force
+RUN php artisan db:seed --force
 EXPOSE 80
