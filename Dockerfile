@@ -24,7 +24,11 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 
 RUN composer install --no-dev --optimize-autoloader
 
-# 🔥 FIX CRÍTICO PARA LARAVEL (LOGIN / SESSION / 500 ERROR)
+# 🔥 FIX SQLITE (ESTO TE FALTABA)
+RUN mkdir -p database
+RUN touch database/database.sqlite
+
+# 🔥 permisos Laravel
 RUN chmod -R 775 storage bootstrap/cache
 RUN chown -R www-data:www-data storage bootstrap/cache
 
