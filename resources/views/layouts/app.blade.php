@@ -107,6 +107,22 @@
         .topbar-date { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; }
         .content { flex: 1; overflow-y: auto; padding: 24px; }
 
+        /* BOTON HAMBURGUESA (solo movil) */
+        .menu-toggle {
+            display: none; background: none; border: 1px solid var(--border2);
+            color: var(--text2); width: 36px; height: 36px; border-radius: 8px;
+            align-items: center; justify-content: center; cursor: pointer; padding: 0;
+        }
+        .menu-toggle i { font-size: 20px; }
+        .menu-toggle:hover { background: var(--bg3); color: var(--text); }
+
+        /* OVERLAY DETRAS DEL SIDEBAR EN MOVIL */
+        .sidebar-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(40,35,25,0.45); z-index: 240;
+        }
+        .sidebar-overlay.open { display: block; }
+
         /* STATS */
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
         .stat-card {
@@ -305,6 +321,78 @@
         @media (max-width: 860px) {
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .row2, .form-grid { grid-template-columns: 1fr; }
+
+            /* Sidebar fuera de pantalla por defecto, se desliza al abrir */
+            .sidebar {
+                position: fixed; top: 0; left: 0; z-index: 250;
+                width: 260px; min-width: 260px; max-width: 85vw;
+                transform: translateX(-100%);
+                transition: transform 0.22s ease;
+                box-shadow: 6px 0 24px rgba(40,35,25,0.18);
+            }
+            .sidebar.open { transform: translateX(0); }
+
+            /* El contenido principal ocupa todo el ancho */
+            .main { width: 100%; min-width: 0; }
+            .topbar { padding: 0 14px; }
+            .content { padding: 14px; }
+
+            /* Mostrar el boton hamburguesa en la topbar */
+            .menu-toggle { display: inline-flex; }
+
+            /* Ajustes finos para no saturar el header en pantallas chicas */
+            .topbar-title { font-size: 14px; }
+            .topbar-badge { display: none; }
+            .topbar-date { display: none; }
+
+            /* Tablas con scroll horizontal en pantallas chicas */
+            .card > div[style*="padding:0 6px 6px"] { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+            /* La columna de acciones (ultima) queda fija a la derecha al scrollear */
+            table thead th:last-child,
+            table tbody td:last-child {
+                position: sticky; right: 0;
+                background: var(--bg2);
+                box-shadow: -8px 0 12px -8px rgba(40,35,25,0.12);
+            }
+
+            /* Botones mas grandes para tocar comodamente */
+            .btn { min-height: 40px; }
+            .btn-sm { min-height: 36px; padding: 8px 12px; }
+            .btn-sm i { font-size: 16px; }
+
+            /* Evitar el zoom automatico de iOS al enfocar inputs (font >= 16px) */
+            input, select, textarea { font-size: 16px; }
+
+            /* Modales mas comodos en movil */
+            .modal-overlay { padding: 16px 12px; }
+            .modal-box { max-width: 100%; }
+            .modal-box.modal-sm { max-width: 100%; }
+            .modal-head { padding: 12px 14px; }
+            .modal-body { padding: 14px; }
+            .modal-foot {
+                padding: 12px 14px; flex-wrap: wrap; gap: 8px;
+            }
+            .modal-foot .btn { flex: 1 1 auto; justify-content: center; }
+            .modal-confirm-body { padding: 22px 16px 4px; }
+        }
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .filter-bar { padding: 12px; }
+            .filter-bar input, .filter-bar select { min-width: 0; width: 100%; }
+            .filter-bar .filter-field { flex: 1 1 100%; }
+            .filter-bar .filter-actions { width: 100%; margin-left: 0; }
+            .page-actions { flex-wrap: wrap; }
+            .page-actions .btn { flex: 1 1 auto; justify-content: center; }
+
+            /* Modal casi a pantalla completa en celulares chicos */
+            .modal-overlay { padding: 8px 6px; }
+            .modal-foot { padding: 10px 12px; }
+            .modal-body { padding: 12px; }
+
+            /* Paginacion mas compacta */
+            .pagination-wrap { padding: 10px 12px; }
+            .pagination .page-link { min-width: 30px; height: 30px; font-size: 12px; padding: 0 7px; }
         }
     </style>
     @stack('styles')
@@ -312,7 +400,7 @@
 <body>
 
     {{-- SIDEBAR --}}
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
             <div class="brand-icon"><i class="ti ti-flame"></i></div>
             <div>
@@ -380,10 +468,16 @@
         @endauth
     </aside>
 
+    {{-- Overlay oscuro detras del sidebar en movil --}}
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
     {{-- MAIN --}}
     <div class="main">
         <header class="topbar">
             <div class="topbar-left">
+                <button type="button" class="menu-toggle" onclick="toggleSidebar()" aria-label="Abrir menu">
+                    <i class="ti ti-menu-2"></i>
+                </button>
                 <div class="topbar-title">@yield('page-title', 'Dashboard')</div>
                 <span class="topbar-badge">@yield('page-badge', 'General')</span>
             </div>
@@ -440,6 +534,22 @@
             var m = document.getElementById(id);
             if (m) m.classList.remove('open');
         }
+
+        // Sidebar movil: abrir/cerrar
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebar-overlay').classList.toggle('open');
+        }
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebar-overlay').classList.remove('open');
+        }
+        // En movil, cerrar el sidebar al tocar cualquier enlace de navegacion
+        document.querySelectorAll('.sidebar .nav-item').forEach(function (el) {
+            el.addEventListener('click', function () {
+                if (window.innerWidth <= 860) closeSidebar();
+            });
+        });
 
         // Confirmacion "¿Esta seguro?" para cualquier form con data-confirm
         var pendingForm = null;
