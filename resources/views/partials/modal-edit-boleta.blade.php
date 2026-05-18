@@ -77,9 +77,24 @@
                     </div>
                     <div class="form-group full">
                         <label>Reemplazar / agregar evidencia (opcional)</label>
-                        <input type="file" name="evidencia" accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf">
-                        <span style="font-size:11px;color:var(--text3)">JPG, PNG, WEBP o PDF &middot; maximo 5 MB. Deja vacio para conservar el actual.</span>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                            <label class="btn" style="cursor:pointer;margin:0">
+                                <i class="ti ti-camera"></i> Tomar foto
+                                <input type="file" name="evidencia_camara" accept="image/*" capture="environment"
+                                       style="display:none" onchange="mostrarNombreEvidencia(this,'ev-nombre-{{ $b->id }}')">
+                            </label>
+                            <label class="btn" style="cursor:pointer;margin:0">
+                                <i class="ti ti-paperclip"></i> Elegir archivo
+                                <input type="file" name="evidencia" accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf"
+                                       style="display:none" onchange="mostrarNombreEvidencia(this,'ev-nombre-{{ $b->id }}')">
+                            </label>
+                            <span id="ev-nombre-{{ $b->id }}" style="font-size:12.5px;color:var(--text2)"></span>
+                        </div>
+                        <span style="font-size:11px;color:var(--text3)">
+                            "Tomar foto" abre la camara del celular. Deja vacio para conservar el archivo actual. Max 5 MB.
+                        </span>
                         @if($isEditing) @error('evidencia') <span class="field-error">{{ $message }}</span> @enderror @endif
+                        @if($isEditing) @error('evidencia_camara') <span class="field-error">{{ $message }}</span> @enderror @endif
                     </div>
                 </div>
             </div>

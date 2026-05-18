@@ -166,11 +166,24 @@
                                 <i class="ti ti-paperclip" style="vertical-align:-2px"></i>
                                 Evidencia &mdash; foto o PDF de la boleta fisica
                             </label>
-                            <input type="file" name="evidencia" accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf">
+                            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                                <label class="btn" style="cursor:pointer;margin:0">
+                                    <i class="ti ti-camera"></i> Tomar foto
+                                    <input type="file" name="evidencia_camara" accept="image/*" capture="environment"
+                                           style="display:none" onchange="mostrarNombreEvidencia(this,'ev-nombre-new')">
+                                </label>
+                                <label class="btn" style="cursor:pointer;margin:0">
+                                    <i class="ti ti-paperclip"></i> Elegir archivo
+                                    <input type="file" name="evidencia" accept=".jpg,.jpeg,.png,.webp,.pdf,image/*,application/pdf"
+                                           style="display:none" onchange="mostrarNombreEvidencia(this,'ev-nombre-new')">
+                                </label>
+                                <span id="ev-nombre-new" style="font-size:12.5px;color:var(--text2)"></span>
+                            </div>
                             <span style="font-size:11px;color:var(--text3)">
-                                Formatos: JPG, PNG, WEBP o PDF &middot; maximo 5 MB. Recomendado adjuntar siempre la evidencia.
+                                En el celular, "Tomar foto" abre la camara directo. Formatos: JPG/PNG/WEBP/PDF &middot; maximo 5 MB.
                             </span>
                             @error('evidencia') <span class="field-error">{{ $message }}</span> @enderror
+                            @error('evidencia_camara') <span class="field-error">{{ $message }}</span> @enderror
                         </div>
                     </div>
                 </div>
@@ -206,6 +219,21 @@
             calcTotal();
         }
     })();
+    // Cuando se elige un archivo (o se toma una foto), mostrar el nombre y limpiar el otro input
+    function mostrarNombreEvidencia(input, spanId) {
+        var span = document.getElementById(spanId);
+        if (input.files && input.files.length) {
+            span.innerHTML = '<i class="ti ti-check" style="color:var(--green);vertical-align:-2px"></i> ' + input.files[0].name;
+            var form = input.closest('form');
+            if (form) {
+                form.querySelectorAll('input[type=file]').forEach(function (other) {
+                    if (other !== input && other.value) other.value = '';
+                });
+            }
+        } else {
+            span.textContent = '';
+        }
+    }
     // Calculo del total para los modales de edicion (uno por fila)
     function calcEditTotal(id) {
         var g = parseFloat(document.getElementById('edit-b-galones-' + id).value) || 0;

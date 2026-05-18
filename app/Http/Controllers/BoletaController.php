@@ -43,27 +43,31 @@ class BoletaController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'numero_boleta' => 'required|string|max:50',
-            'vehiculo_id'   => 'required|exists:vehiculos,id',
-            'galones'       => 'required|numeric|min:0.01',
-            'precio_galon'  => 'required|numeric|min:0.01',
-            'fecha'         => 'required|date',
-            'proveedor'     => 'nullable|string|max:150',
-            // Evidencia: imagen o PDF de la boleta fisica (max 5 MB)
-            'evidencia'     => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
+            'numero_boleta'    => 'required|string|max:50',
+            'vehiculo_id'      => 'required|exists:vehiculos,id',
+            'galones'          => 'required|numeric|min:0.01',
+            'precio_galon'     => 'required|numeric|min:0.01',
+            'fecha'            => 'required|date',
+            'proveedor'        => 'nullable|string|max:150',
+            // Evidencia: archivo subido normal (imagen o PDF)
+            'evidencia'        => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
+            // Evidencia: foto tomada con la camara del celular (solo imagen)
+            'evidencia_camara' => 'nullable|file|mimes:jpg,jpeg,png,webp|max:5120',
         ], [], [
-            'evidencia' => 'archivo de evidencia',
+            'evidencia'        => 'archivo de evidencia',
+            'evidencia_camara' => 'foto de evidencia',
         ]);
 
-        // El archivo se guarda aparte; no debe ir directo al modelo
-        unset($data['evidencia']);
+        // Los archivos se manejan aparte; no van directo al modelo
+        unset($data['evidencia'], $data['evidencia_camara']);
 
         // Calcular total automaticamente
         $data['total'] = round($data['galones'] * $data['precio_galon'], 2);
 
-        // Guardar la evidencia en storage/app/public/boletas
-        if ($request->hasFile('evidencia')) {
-            $data['evidencia'] = $request->file('evidencia')->store('boletas', 'public');
+        // La foto de la camara tiene prioridad; si no, se usa el archivo subido
+        $archivo = $request->file('evidencia_camara') ?? $request->file('evidencia');
+        if ($archivo) {
+            $data['evidencia'] = $archivo->store('boletas', 'public');
         }
 
         Boleta::create($data);
@@ -82,20 +86,23 @@ class BoletaController extends Controller
             'fecha'              => 'required|date',
             'proveedor'          => 'nullable|string|max:150',
             'evidencia'          => 'nullable|file|mimes:jpg,jpeg,png,webp,pdf|max:5120',
+            'evidencia_camara'   => 'nullable|file|mimes:jpg,jpeg,png,webp|max:5120',
             'eliminar_evidencia' => 'nullable|boolean',
         ]);
 
         $eliminar = $request->boolean('eliminar_evidencia');
-        unset($data['evidencia'], $data['eliminar_evidencia']);
+        unset($data['evidencia'], $data['evidencia_camara'], $data['eliminar_evidencia']);
 
         $data['total'] = round($data['galones'] * $data['precio_galon'], 2);
 
-        if ($request->hasFile('evidencia')) {
+        // La foto de la camara tiene prioridad sobre el archivo subido
+        $archivo = $request->file('evidencia_camara') ?? $request->file('evidencia');
+        if ($archivo) {
             // Reemplaza el archivo existente
             if ($boleta->evidencia) {
                 Storage::disk('public')->delete($boleta->evidencia);
             }
-            $data['evidencia'] = $request->file('evidencia')->store('boletas', 'public');
+            $data['evidencia'] = $archivo->store('boletas', 'public');
         } elseif ($eliminar && $boleta->evidencia) {
             Storage::disk('public')->delete($boleta->evidencia);
             $data['evidencia'] = null;
