@@ -34,10 +34,9 @@ RUN chmod -R 775 storage bootstrap/cache \
 # ── Script de arranque ──
 # Las migraciones se ejecutan en RUNTIME (no en build) porque la BD Postgres
 # de Render solo es accesible cuando el contenedor esta corriendo.
-# El seed NO se incluye aqui para no duplicar registros en cada reinicio.
-# La primera vez ejecuta el seed manualmente desde el Shell de Render:
-#     php artisan db:seed --force
-RUN printf '#!/bin/bash\nset -e\necho ">> Limpiando cache..."\nphp artisan config:clear\nphp artisan cache:clear\necho ">> Ejecutando migraciones..."\nphp artisan migrate --force\necho ">> Storage link..."\nphp artisan storage:link 2>/dev/null || true\necho ">> Arrancando Apache..."\nexec apache2-foreground\n' > /usr/local/bin/start.sh \
+# Tras cada reinicio: limpia toda la cache, migra, y re-cachea config para
+# que los cambios en .env / Environment de Render se apliquen de inmediato.
+RUN printf '#!/bin/bash\nset -e\necho ">> Limpiando cache..."\nphp artisan config:clear\nphp artisan cache:clear\nphp artisan route:clear\nphp artisan view:clear\necho ">> Ejecutando migraciones..."\nphp artisan migrate --force\necho ">> Seed inicial (solo si la BD esta vacia)..."\nphp artisan app:seed-if-empty\necho ">> Storage link..."\nphp artisan storage:link 2>/dev/null || true\necho ">> Cacheando configuracion..."\nphp artisan config:cache\necho ">> Arrancando Apache..."\nexec apache2-foreground\n' > /usr/local/bin/start.sh \
     && chmod +x /usr/local/bin/start.sh
 
 EXPOSE 80
