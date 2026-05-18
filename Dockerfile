@@ -1,15 +1,18 @@
 FROM php:8.2-apache
 
-# Dependencias del sistema
+# ── Dependencias del sistema ──
+# libpq-dev es necesario para compilar pdo_pgsql (PostgreSQL).
+# Se deja pdo_mysql tambien por si se cambia de motor mas adelante.
 RUN apt-get update && apt-get install -y \
-    libzip-dev zip unzip git curl \
-    && docker-php-ext-install pdo pdo_mysql zip
+        libzip-dev zip unzip git curl libpq-dev \
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql zip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Habilitar rewrite (Laravel lo necesita)
 RUN a2enmod rewrite
 
 # Cambiar DocumentRoot a /public
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
@@ -22,19 +25,21 @@ WORKDIR /var/www/html
 # Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-RUN composer install --no-dev --optimize-autoloader
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# 🔥 FIX SQLITE (ESTO TE FALTABA)
-RUN mkdir -p database
-RUN touch database/database.sqlite
+# Permisos para Laravel (storage y bootstrap/cache deben ser escribibles)
+RUN chmod -R 775 storage bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache
 
-# 🔥 permisos Laravel
-RUN chmod -R 775 storage bootstrap/cache
-RUN chown -R www-data:www-data storage bootstrap/cache
+# ── Script de arranque ──
+# Las migraciones se ejecutan en RUNTIME (no en build) porque la BD Postgres
+# de Render solo es accesible cuando el contenedor esta corriendo.
+# El seed NO se incluye aqui para no duplicar registros en cada reinicio.
+# La primera vez ejecuta el seed manualmente desde el Shell de Render:
+#     php artisan db:seed --force
+RUN printf '#!/bin/bash\nset -e\necho ">> Limpiando cache..."\nphp artisan config:clear\nphp artisan cache:clear\necho ">> Ejecutando migraciones..."\nphp artisan migrate --force\necho ">> Storage link..."\nphp artisan storage:link 2>/dev/null || true\necho ">> Arrancando Apache..."\nexec apache2-foreground\n' > /usr/local/bin/start.sh \
+    && chmod +x /usr/local/bin/start.sh
 
-# limpiar cache Laravel
-RUN php artisan config:clear
-RUN php artisan cache:clear
-RUN php artisan migrate --force
-RUN php artisan db:seed --force
 EXPOSE 80
+
+CMD ["/usr/local/bin/start.sh"]

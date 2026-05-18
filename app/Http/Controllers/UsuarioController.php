@@ -14,8 +14,8 @@ class UsuarioController extends Controller
 
         $usuarios = User::query()
             ->when($q, fn ($query) => $query->where(fn ($w) =>
-                $w->where('name', 'like', "%{$q}%")
-                  ->orWhere('username', 'like', "%{$q}%")))
+                $w->whereRaw('LOWER(name) LIKE LOWER(?)', ["%{$q}%"])
+                  ->orWhereRaw('LOWER(username) LIKE LOWER(?)', ["%{$q}%"])))
             ->when($role, fn ($query) => $query->where('role', $role))
             ->orderByDesc('id')
             ->paginate(10)

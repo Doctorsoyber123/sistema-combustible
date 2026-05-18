@@ -13,9 +13,9 @@ class TramoController extends Controller
 
         $tramos = Tramo::query()
             ->when($q, fn ($query) => $query->where(fn ($w) =>
-                $w->where('nombre', 'like', "%{$q}%")
-                  ->orWhere('origen', 'like', "%{$q}%")
-                  ->orWhere('destino', 'like', "%{$q}%")))
+                $w->whereRaw('LOWER(nombre) LIKE LOWER(?)', ["%{$q}%"])
+                  ->orWhereRaw('LOWER(origen) LIKE LOWER(?)', ["%{$q}%"])
+                  ->orWhereRaw('LOWER(destino) LIKE LOWER(?)', ["%{$q}%"])))
             ->latest()
             ->paginate(10)
             ->withQueryString();

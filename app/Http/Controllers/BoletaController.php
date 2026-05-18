@@ -18,7 +18,7 @@ class BoletaController extends Controller
 
         $query = Boleta::with('vehiculo')
             ->when($vehiculoId, fn ($q) => $q->where('vehiculo_id', $vehiculoId))
-            ->when($proveedor, fn ($q) => $q->where('proveedor', 'like', "%{$proveedor}%"))
+            ->when($proveedor, fn ($q) => $q->whereRaw('LOWER(proveedor) LIKE LOWER(?)', ["%{$proveedor}%"]))
             ->when($desde, fn ($q) => $q->whereDate('fecha', '>=', $desde))
             ->when($hasta, fn ($q) => $q->whereDate('fecha', '<=', $hasta));
 

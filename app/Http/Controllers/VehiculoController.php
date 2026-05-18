@@ -16,9 +16,9 @@ class VehiculoController extends Controller
 
         $vehiculos = Vehiculo::query()
             ->when($q, fn ($query) => $query->where(fn ($w) =>
-                $w->where('codigo', 'like', "%{$q}%")
-                  ->orWhere('placa', 'like', "%{$q}%")
-                  ->orWhere('modelo', 'like', "%{$q}%")))
+                $w->whereRaw('LOWER(codigo) LIKE LOWER(?)', ["%{$q}%"])
+                  ->orWhereRaw('LOWER(placa) LIKE LOWER(?)', ["%{$q}%"])
+                  ->orWhereRaw('LOWER(modelo) LIKE LOWER(?)', ["%{$q}%"])))
             ->when($tipo, fn ($query) => $query->where('tipo', $tipo))
             ->when($estado !== null && $estado !== '', fn ($query) => $query->where('activo', (bool) $estado))
             ->latest()
