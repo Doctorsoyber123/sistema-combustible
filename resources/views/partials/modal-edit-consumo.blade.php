@@ -29,10 +29,13 @@
                         <label>Tramo</label>
                         <select name="tramo_id" required>
                             @foreach($tramos as $t)
-                                <option value="{{ $t->id }}" @selected($tramoSel == $t->id)>{{ $t->nombre }}</option>
+                                <option value="{{ $t->id }}" data-descripcion="{{ e($t->descripcion) }}" @selected($tramoSel == $t->id)>{{ $t->nombre }}</option>
                             @endforeach
                         </select>
                         @if($isEditing) @error('tramo_id') <span class="field-error">{{ $message }}</span> @enderror @endif
+                    </div>
+                    <div class="form-group">
+                        <small id="tramo-desc-edit-{{ $c->id }}" class="text-muted">{{ $isEditing ? old('tramo_descripcion', $c->tramo->descripcion ?? '') : ($c->tramo->descripcion ?? '') }}</small>
                     </div>
                     <div class="form-group">
                         <label>Galones usados</label>
@@ -55,6 +58,30 @@
                         <label>Observaciones</label>
                         <input type="text" name="observaciones" value="{{ $isEditing ? old('observaciones', $c->observaciones) : $c->observaciones }}">
                         @if($isEditing) @error('observaciones') <span class="field-error">{{ $message }}</span> @enderror @endif
+                    </div>
+                </div>
+                <hr>
+                <h4>Boleta (opcional)</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Número de boleta</label>
+                        <input type="text" name="boleta_numero" value="{{ $isEditing ? old('boleta_numero', $c->boleta->numero_boleta ?? '') : ($c->boleta->numero_boleta ?? '') }}" placeholder="Ej: B-00230">
+                    </div>
+                    <div class="form-group">
+                        <label>Proveedor</label>
+                        <input type="text" name="boleta_proveedor" value="{{ $isEditing ? old('boleta_proveedor', $c->boleta->proveedor ?? '') : ($c->boleta->proveedor ?? '') }}" placeholder="Proveedor">
+                    </div>
+                    <div class="form-group">
+                        <label>Galones (boleta)</label>
+                        <input type="number" name="boleta_galones" step="0.01" min="0" value="{{ $isEditing ? old('boleta_galones', $c->boleta->galones ?? '') : ($c->boleta->galones ?? '') }}" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Precio por galón</label>
+                        <input type="number" name="boleta_precio" step="0.01" min="0" value="{{ $isEditing ? old('boleta_precio', $c->boleta->precio_galon ?? '') : ($c->boleta->precio_galon ?? '') }}" placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha (boleta)</label>
+                        <input type="date" name="boleta_fecha" value="{{ $isEditing ? old('boleta_fecha', optional($c->boleta)->fecha?->format('Y-m-d')) : optional($c->boleta)->fecha?->format('Y-m-d') }}">
                     </div>
                 </div>
             </div>

@@ -31,6 +31,11 @@
                         <input type="text" name="destino" value="{{ $isEditing ? old('destino', $t->destino) : $t->destino }}" required>
                         @if($isEditing) @error('destino') <span class="field-error">{{ $message }}</span> @enderror @endif
                     </div>
+                    <div class="form-group">
+                        <label>Descripción (opcional)</label>
+                        <textarea name="descripcion" rows="3">{{ $isEditing ? old('descripcion', $t->descripcion) : $t->descripcion }}</textarea>
+                        @if($isEditing) @error('descripcion') <span class="field-error">{{ $message }}</span> @enderror @endif
+                    </div>
                 </div>
             </div>
             <div class="modal-foot">

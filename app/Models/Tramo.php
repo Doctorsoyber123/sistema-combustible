@@ -9,7 +9,7 @@ class Tramo extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nombre', 'origen', 'destino', 'km', 'activo'];
+    protected $fillable = ['nombre', 'origen', 'destino', 'km', 'activo', 'descripcion'];
 
     protected $casts = [
         'km'     => 'decimal:2',

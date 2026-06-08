@@ -25,4 +25,9 @@ class Boleta extends Model
     {
         return $this->belongsTo(Vehiculo::class);
     }
+
+    public function consumos()
+    {
+        return $this->hasMany(Consumo::class);
+    }
 }

@@ -37,12 +37,15 @@
                         <select name="tramo_id" required>
                             <option value="">Seleccionar...</option>
                             @foreach($tramos as $t)
-                                <option value="{{ $t->id }}" @selected(old('tramo_id') == $t->id)>
+                                <option value="{{ $t->id }}" data-descripcion="{{ e($t->descripcion) }}" @selected(old('tramo_id') == $t->id)>
                                     {{ $t->nombre }} ({{ rtrim(rtrim(number_format($t->km, 2), '0'), '.') }} km)
                                 </option>
                             @endforeach
                         </select>
                         @error('tramo_id') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <small id="tramo-desc" class="text-muted">{{ old('tramo_descripcion') }}</small>
                     </div>
                     <div class="form-group">
                         <label>Galones usados</label>
@@ -65,6 +68,36 @@
                         @error('observaciones') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                 </div>
+
+                <hr>
+                <h4>Boleta (opcional)</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Número de boleta</label>
+                        <input type="text" name="boleta_numero" value="{{ old('boleta_numero') }}" placeholder="Ej: B-00230">
+                        @error('boleta_numero') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Proveedor</label>
+                        <input type="text" name="boleta_proveedor" value="{{ old('boleta_proveedor') }}" placeholder="Proveedor">
+                        @error('boleta_proveedor') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Galones (boleta)</label>
+                        <input type="number" name="boleta_galones" value="{{ old('boleta_galones') }}" step="0.01" min="0" placeholder="0.00">
+                        @error('boleta_galones') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Precio por galón</label>
+                        <input type="number" name="boleta_precio" value="{{ old('boleta_precio') }}" step="0.01" min="0" placeholder="0.00">
+                        @error('boleta_precio') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha (boleta)</label>
+                        <input type="date" name="boleta_fecha" value="{{ old('boleta_fecha') }}">
+                        @error('boleta_fecha') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                </div>
                 <div class="form-actions">
                     <a href="{{ route('consumos.index') }}" class="btn">Cancelar</a>
                     <button type="submit" class="btn btn-primary"><i class="ti ti-check"></i> Registrar consumo</button>
@@ -73,4 +106,16 @@
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const select = document.querySelector('select[name="tramo_id"]');
+    const desc = document.getElementById('tramo-desc');
+    function update(){
+        const opt = select.options[select.selectedIndex];
+        desc.textContent = opt ? (opt.dataset.descripcion || '') : '';
+    }
+    select.addEventListener('change', update);
+    update();
+});
+</script>
 @endsection

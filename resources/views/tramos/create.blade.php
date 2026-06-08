@@ -34,6 +34,11 @@
                         <input type="text" name="destino" value="{{ old('destino') }}" placeholder="Ej: Planta procesadora" required>
                         @error('destino') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
+                    <div class="form-group">
+                        <label>Descripción (opcional)</label>
+                        <textarea name="descripcion" rows="3" placeholder="Detalle de la ruta...">{{ old('descripcion') }}</textarea>
+                        @error('descripcion') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
                 </div>
                 <div class="form-actions">
                     <a href="{{ route('tramos.index') }}" class="btn">Cancelar</a>

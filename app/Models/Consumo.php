@@ -10,7 +10,7 @@ class Consumo extends Model
     use HasFactory;
 
     protected $fillable = [
-        'vehiculo_id', 'tramo_id', 'galones', 'fecha', 'operador', 'observaciones',
+        'vehiculo_id', 'tramo_id', 'galones', 'fecha', 'operador', 'observaciones', 'boleta_id',
     ];
 
     protected $casts = [
@@ -26,5 +26,10 @@ class Consumo extends Model
     public function tramo()
     {
         return $this->belongsTo(Tramo::class);
+    }
+
+    public function boleta()
+    {
+        return $this->belongsTo(Boleta::class);
     }
 }

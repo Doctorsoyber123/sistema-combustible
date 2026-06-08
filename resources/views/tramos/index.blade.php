@@ -38,7 +38,12 @@
                 <tbody>
                     @foreach($tramos as $t)
                         <tr>
-                            <td><strong>{{ $t->nombre }}</strong></td>
+                            <td>
+                                <strong>{{ $t->nombre }}</strong>
+                                @if($t->descripcion)
+                                    <div class="text-muted" style="font-size:12px;margin-top:6px">{{ $t->descripcion }}</div>
+                                @endif
+                            </td>
                             <td>{{ $t->origen ?? '-' }}</td>
                             <td>{{ $t->destino ?? '-' }}</td>
                             <td class="mono">{{ rtrim(rtrim(number_format($t->km, 2), '0'), '.') }} km</td>

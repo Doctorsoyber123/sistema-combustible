@@ -66,7 +66,7 @@
                 <thead>
                     <tr>
                         <th>Fecha</th><th>Vehiculo</th><th>Tipo</th><th>Tramo</th>
-                        <th>Galones</th><th>Operador</th><th>Observaciones</th><th></th>
+                        <th>Galones</th><th>Operador</th><th>Boleta</th><th>Observaciones</th><th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -78,6 +78,7 @@
                             <td>{{ $c->tramo->nombre ?? '-' }}</td>
                             <td class="mono">{{ number_format($c->galones, 1) }}</td>
                             <td>{{ $c->operador ?? '-' }}</td>
+                            <td>{{ $c->boleta->numero_boleta ?? '-' }}</td>
                             <td style="color:var(--text2)">{{ $c->observaciones ?? '-' }}</td>
                             <td style="text-align:right;white-space:nowrap">
                                 <button type="button" class="btn btn-sm" onclick="openModal('modal-edit-consumo-{{ $c->id }}')" title="Editar">
@@ -135,13 +136,16 @@
                             <select name="tramo_id" required>
                                 <option value="">Seleccionar...</option>
                                 @foreach($tramos as $t)
-                                    <option value="{{ $t->id }}" @selected(old('tramo_id') == $t->id)>
-                                        {{ $t->nombre }} ({{ rtrim(rtrim(number_format($t->km, 2), '0'), '.') }} km)
-                                    </option>
-                                @endforeach
+                                        <option value="{{ $t->id }}" data-descripcion="{{ e($t->descripcion) }}" @selected(old('tramo_id') == $t->id)>
+                                            {{ $t->nombre }} ({{ rtrim(rtrim(number_format($t->km, 2), '0'), '.') }} km)
+                                        </option>
+                                    @endforeach
                             </select>
                             @error('tramo_id') <span class="field-error">{{ $message }}</span> @enderror
                         </div>
+                            <div class="form-group">
+                                <small id="tramo-desc-modal" class="text-muted">{{ old('tramo_descripcion') }}</small>
+                            </div>
                         <div class="form-group">
                             <label>Galones usados</label>
                             <input type="number" name="galones" value="{{ old('galones') }}" step="0.01" min="0.01" placeholder="0.00" required>
@@ -164,6 +168,35 @@
                             <input type="text" name="observaciones" value="{{ old('observaciones') }}" placeholder="Opcional...">
                             @error('observaciones') <span class="field-error">{{ $message }}</span> @enderror
                         </div>
+                    </div>
+                </div>
+                <hr>
+                <h4>Boleta (opcional)</h4>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Número de boleta</label>
+                        <input type="text" name="boleta_numero" value="{{ old('boleta_numero') }}" placeholder="Ej: B-00230">
+                        @error('boleta_numero') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Proveedor</label>
+                        <input type="text" name="boleta_proveedor" value="{{ old('boleta_proveedor') }}" placeholder="Proveedor">
+                        @error('boleta_proveedor') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Galones (boleta)</label>
+                        <input type="number" name="boleta_galones" value="{{ old('boleta_galones') }}" step="0.01" min="0" placeholder="0.00">
+                        @error('boleta_galones') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Precio por galón</label>
+                        <input type="number" name="boleta_precio" value="{{ old('boleta_precio') }}" step="0.01" min="0" placeholder="0.00">
+                        @error('boleta_precio') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha (boleta)</label>
+                        <input type="date" name="boleta_fecha" value="{{ old('boleta_fecha') }}">
+                        @error('boleta_fecha') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                 </div>
                 <div class="modal-foot">
@@ -191,4 +224,32 @@
         </script>
     @endpush
 @endif
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    const select = document.querySelector('#modal-consumo select[name="tramo_id"]');
+    const desc = document.getElementById('tramo-desc-modal');
+    if(select && desc){
+        function update(){
+            const opt = select.options[select.selectedIndex];
+            desc.textContent = opt ? (opt.dataset.descripcion || '') : '';
+        }
+        select.addEventListener('change', update);
+        update();
+    }
+    // para los modales de edición: actualizar descripcion correspondiente
+    document.querySelectorAll('.modal-overlay').forEach(function(modal){
+        const sel = modal.querySelector('select[name="tramo_id"]');
+        if(!sel) return;
+        const id = modal.id.replace('modal-edit-consumo-', '');
+        const dest = document.getElementById('tramo-desc-edit-' + id);
+        if(!dest) return;
+        function upd(){
+            const o = sel.options[sel.selectedIndex];
+            dest.textContent = o ? (o.dataset.descripcion || '') : '';
+        }
+        sel.addEventListener('change', upd);
+        upd();
+    });
+});
+</script>
 @endsection

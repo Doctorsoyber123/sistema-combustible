@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Consumo;
+use App\Models\Boleta;
 use App\Models\Tramo;
 use App\Models\User;
 use App\Models\Vehiculo;
@@ -59,6 +60,29 @@ class ConsumoController extends Controller
             'observaciones' => 'nullable|string',
         ]);
 
+        // Si viene información de boleta, crearla y asociarla al consumo
+        if ($request->filled('boleta_numero') || $request->filled('boleta_galones')) {
+            $bdata = $request->validate([
+                'boleta_numero' => 'nullable|string|max:100',
+                'boleta_proveedor' => 'nullable|string|max:150',
+                'boleta_galones' => 'nullable|numeric|min:0',
+                'boleta_precio' => 'nullable|numeric|min:0',
+                'boleta_fecha' => 'nullable|date',
+            ]);
+
+            $boleta = Boleta::create([
+                'numero_boleta' => $bdata['boleta_numero'] ?? null,
+                'vehiculo_id'   => $data['vehiculo_id'],
+                'proveedor'     => $bdata['boleta_proveedor'] ?? null,
+                'galones'       => $bdata['boleta_galones'] ?? ($data['galones'] ?? 0),
+                'precio_galon'  => $bdata['boleta_precio'] ?? null,
+                'total'         => isset($bdata['boleta_galones'], $bdata['boleta_precio']) ? round($bdata['boleta_galones'] * $bdata['boleta_precio'], 2) : null,
+                'fecha'         => $bdata['boleta_fecha'] ?? $data['fecha'],
+            ]);
+
+            $data['boleta_id'] = $boleta->id;
+        }
+
         Consumo::create($data);
 
         return redirect()->route('consumos.index')
@@ -75,6 +99,28 @@ class ConsumoController extends Controller
             'operador'      => 'nullable|string|max:150',
             'observaciones' => 'nullable|string',
         ]);
+
+        if ($request->filled('boleta_numero') || $request->filled('boleta_galones')) {
+            $bdata = $request->validate([
+                'boleta_numero' => 'nullable|string|max:100',
+                'boleta_proveedor' => 'nullable|string|max:150',
+                'boleta_galones' => 'nullable|numeric|min:0',
+                'boleta_precio' => 'nullable|numeric|min:0',
+                'boleta_fecha' => 'nullable|date',
+            ]);
+
+            $boleta = Boleta::create([
+                'numero_boleta' => $bdata['boleta_numero'] ?? null,
+                'vehiculo_id'   => $data['vehiculo_id'],
+                'proveedor'     => $bdata['boleta_proveedor'] ?? null,
+                'galones'       => $bdata['boleta_galones'] ?? ($data['galones'] ?? 0),
+                'precio_galon'  => $bdata['boleta_precio'] ?? null,
+                'total'         => isset($bdata['boleta_galones'], $bdata['boleta_precio']) ? round($bdata['boleta_galones'] * $bdata['boleta_precio'], 2) : null,
+                'fecha'         => $bdata['boleta_fecha'] ?? $data['fecha'],
+            ]);
+
+            $data['boleta_id'] = $boleta->id;
+        }
 
         $consumo->update($data);
 
