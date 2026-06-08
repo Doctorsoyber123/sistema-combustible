@@ -28,6 +28,12 @@ class Boleta extends Model
 
     public function consumos()
     {
+        return $this->belongsToMany(Consumo::class, 'boleta_consumo')->withTimestamps();
+    }
+
+    public function consumosViaId()
+    {
+        // compatibilidad con consumos que usen boleta_id
         return $this->hasMany(Consumo::class);
     }
 }

@@ -29,12 +29,13 @@
                         <label>Tramo</label>
                         <select name="tramo_id" required>
                             @foreach($tramos as $t)
-                                <option value="{{ $t->id }}" data-descripcion="{{ e($t->descripcion) }}" @selected($tramoSel == $t->id)>{{ $t->nombre }}</option>
+                                <option value="{{ $t->id }}" data-descripcion="{{ e($t->descripcion) }}" data-turno="{{ e($t->turno) }}" @selected($tramoSel == $t->id)>{{ $t->nombre }}</option>
                             @endforeach
                         </select>
                         @if($isEditing) @error('tramo_id') <span class="field-error">{{ $message }}</span> @enderror @endif
                     </div>
                     <div class="form-group">
+                        <small id="tramo-turno-edit-{{ $c->id }}" class="text-muted" style="display:block;font-weight:600">{{ $isEditing ? old('tramo_turno', $c->tramo->turno ?? '') : ($c->tramo->turno ?? '') }}</small>
                         <small id="tramo-desc-edit-{{ $c->id }}" class="text-muted">{{ $isEditing ? old('tramo_descripcion', $c->tramo->descripcion ?? '') : ($c->tramo->descripcion ?? '') }}</small>
                     </div>
                     <div class="form-group">
@@ -61,27 +62,39 @@
                     </div>
                 </div>
                 <hr>
-                <h4>Boleta (opcional)</h4>
+                <h4>Boletas (opcional)</h4>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Número de boleta</label>
-                        <input type="text" name="boleta_numero" value="{{ $isEditing ? old('boleta_numero', $c->boleta->numero_boleta ?? '') : ($c->boleta->numero_boleta ?? '') }}" placeholder="Ej: B-00230">
+                        <label>Seleccionar boletas existentes</label>
+                        <select name="boletas_existing[]" multiple style="min-height:90px">
+                            @foreach($boletas as $b)
+                                <option value="{{ $b->id }}" data-vehiculo-id="{{ $b->vehiculo_id }}" data-placa="{{ optional($b->vehiculo)->placa }}" @selected(optional($c->boletas)->contains($b->id))>{{ $b->numero_boleta }} — {{ $b->proveedor }} — {{ optional($b->fecha)->format('d/m/Y') }}</option>
+                            @endforeach
+                        </select>
                     </div>
-                    <div class="form-group">
-                        <label>Proveedor</label>
-                        <input type="text" name="boleta_proveedor" value="{{ $isEditing ? old('boleta_proveedor', $c->boleta->proveedor ?? '') : ($c->boleta->proveedor ?? '') }}" placeholder="Proveedor">
-                    </div>
-                    <div class="form-group">
-                        <label>Galones (boleta)</label>
-                        <input type="number" name="boleta_galones" step="0.01" min="0" value="{{ $isEditing ? old('boleta_galones', $c->boleta->galones ?? '') : ($c->boleta->galones ?? '') }}" placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label>Precio por galón</label>
-                        <input type="number" name="boleta_precio" step="0.01" min="0" value="{{ $isEditing ? old('boleta_precio', $c->boleta->precio_galon ?? '') : ($c->boleta->precio_galon ?? '') }}" placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label>Fecha (boleta)</label>
-                        <input type="date" name="boleta_fecha" value="{{ $isEditing ? old('boleta_fecha', optional($c->boleta)->fecha?->format('Y-m-d')) : optional($c->boleta)->fecha?->format('Y-m-d') }}">
+                    <div class="form-group" style="min-width:100%">
+                        <label>Nueva(s) boleta(s) (opcional)</label>
+                        <div id="new-boletas-{{ $c->id }}">
+                            @php $i = 0; @endphp
+                            @foreach(old('new_boletas', $c->boletas->map(function($b){
+                                return ['numero'=>$b->numero_boleta,'proveedor'=>$b->proveedor,'galones'=>$b->galones,'precio'=>$b->precio_galon,'fecha'=>optional($b->fecha)->format('Y-m-d')];
+                            })->toArray()) as $nb)
+                                <div class="boleta-row" data-index="{{ $i }}">
+                                    <input type="text" name="new_boletas[{{ $i }}][numero]" value="{{ $nb['numero'] ?? '' }}" placeholder="Número" style="width:22%">
+                                    <input type="text" name="new_boletas[{{ $i }}][proveedor]" value="{{ $nb['proveedor'] ?? '' }}" placeholder="Proveedor" style="width:28%">
+                                    <input type="number" step="0.01" min="0" name="new_boletas[{{ $i }}][galones]" value="{{ $nb['galones'] ?? '' }}" placeholder="Galones" style="width:12%">
+                                    <input type="number" step="0.01" min="0" name="new_boletas[{{ $i }}][precio]" value="{{ $nb['precio'] ?? '' }}" placeholder="Precio" style="width:12%">
+                                    <input type="date" name="new_boletas[{{ $i }}][fecha]" value="{{ $nb['fecha'] ?? '' }}" style="width:14%">
+                                    <button type="button" class="btn btn-sm" onclick="removeBoletaRow(this)">Eliminar</button>
+                                </div>
+                                @php $i++; @endphp
+                            @endforeach
+                        </div>
+                        <div style="margin-top:8px">
+                            <button type="button" class="btn" onclick="addBoletaRow({{ $c->id }})">+ Agregar nueva boleta</button>
+                            <button type="button" class="btn" onclick="splitIntoBoletas({{ $c->id }})">Dividir galones en boletas</button>
+                            <small class="text-muted" id="boletas-sum-{{ $c->id }}">Suma boletas: 0</small>
+                        </div>
                     </div>
                 </div>
             </div>

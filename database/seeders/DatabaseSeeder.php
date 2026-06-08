@@ -90,6 +90,7 @@ class DatabaseSeeder extends Seeder
             $destino = $parts[count($parts) - 1] ?? 'N/A';
             return Tramo::create([
                 'nombre' => trim($r['codigo'] . ' - ' . $r['turno']),
+                'turno' => $r['turno'] ?? null,
                 'origen' => $origen,
                 'destino' => $destino,
                 'km' => 0.00,

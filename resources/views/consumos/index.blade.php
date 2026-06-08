@@ -42,6 +42,14 @@
         <button type="submit" class="btn btn-primary btn-sm"><i class="ti ti-filter"></i> Filtrar</button>
         <a href="{{ route('consumos.index') }}" class="btn btn-sm"><i class="ti ti-x"></i> Limpiar</a>
     </div>
+    <div style="margin-left:12px;display:flex;align-items:center;gap:8px">
+        <label style="font-size:12px;color:var(--text3)">Items por página</label>
+        <select name="per_page" onchange="this.form.submit()">
+            <option value="10" @selected(($perPage ?? 10) == 10)>10</option>
+            <option value="25" @selected(($perPage ?? 10) == 25)>25</option>
+            <option value="50" @selected(($perPage ?? 10) == 50)>50</option>
+        </select>
+    </div>
 </form>
 
 {{-- Datalist compartido: sugerencias de operador desde la lista de Trabajadores --}}
@@ -61,7 +69,8 @@
     @if($consumos->isEmpty())
         <div class="empty" style="padding:40px"><i class="ti ti-database-off"></i>Sin registros aun</div>
     @else
-        <div style="padding:0 6px 6px">
+        <div id="consumos-list">
+            <div style="padding:0 6px 6px">
             <table>
                 <thead>
                     <tr>
@@ -78,7 +87,7 @@
                             <td>{{ $c->tramo->nombre ?? '-' }}</td>
                             <td class="mono">{{ number_format($c->galones, 1) }}</td>
                             <td>{{ $c->operador ?? '-' }}</td>
-                            <td>{{ $c->boleta->numero_boleta ?? '-' }}</td>
+                            <td>{{ $c->boletas->isNotEmpty() ? $c->boletas->pluck('numero_boleta')->join(', ') : ($c->boleta->numero_boleta ?? '-') }}</td>
                             <td style="color:var(--text2)">{{ $c->observaciones ?? '-' }}</td>
                             <td style="text-align:right;white-space:nowrap">
                                 <button type="button" class="btn btn-sm" onclick="openModal('modal-edit-consumo-{{ $c->id }}')" title="Editar">
@@ -95,8 +104,9 @@
                     @endforeach
                 </tbody>
             </table>
+            </div>
+            {{ $consumos->links('pagination.custom') }}
         </div>
-        {{ $consumos->links('pagination.custom') }}
     @endif
 </div>
 
@@ -136,7 +146,7 @@
                             <select name="tramo_id" required>
                                 <option value="">Seleccionar...</option>
                                 @foreach($tramos as $t)
-                                        <option value="{{ $t->id }}" data-descripcion="{{ e($t->descripcion) }}" @selected(old('tramo_id') == $t->id)>
+                                        <option value="{{ $t->id }}" data-descripcion="{{ e($t->descripcion) }}" data-turno="{{ e($t->turno) }}" @selected(old('tramo_id') == $t->id)>
                                             {{ $t->nombre }} ({{ rtrim(rtrim(number_format($t->km, 2), '0'), '.') }} km)
                                         </option>
                                     @endforeach
@@ -144,6 +154,7 @@
                             @error('tramo_id') <span class="field-error">{{ $message }}</span> @enderror
                         </div>
                             <div class="form-group">
+                                <small id="tramo-turno-modal" class="text-muted" style="display:block;font-weight:600">{{ old('tramo_turno') }}</small>
                                 <small id="tramo-desc-modal" class="text-muted">{{ old('tramo_descripcion') }}</small>
                             </div>
                         <div class="form-group">
@@ -171,32 +182,34 @@
                     </div>
                 </div>
                 <hr>
-                <h4>Boleta (opcional)</h4>
+                <h4>Boletas (opcional)</h4>
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Número de boleta</label>
-                        <input type="text" name="boleta_numero" value="{{ old('boleta_numero') }}" placeholder="Ej: B-00230">
-                        @error('boleta_numero') <span class="field-error">{{ $message }}</span> @enderror
+                        <label>Seleccionar boletas existentes</label>
+                        <select name="boletas_existing[]" multiple style="min-height:90px">
+                            @foreach($boletas as $b)
+                                <option value="{{ $b->id }}" data-vehiculo-id="{{ $b->vehiculo_id }}" data-placa="{{ optional($b->vehiculo)->placa }}">{{ $b->numero_boleta }} — {{ $b->proveedor }} — {{ optional($b->fecha)->format('d/m/Y') }}</option>
+                            @endforeach
+                        </select>
+                        <small class="text-muted">Mantén presionada la tecla Ctrl/Cmd para seleccionar varias.</small>
                     </div>
-                    <div class="form-group">
-                        <label>Proveedor</label>
-                        <input type="text" name="boleta_proveedor" value="{{ old('boleta_proveedor') }}" placeholder="Proveedor">
-                        @error('boleta_proveedor') <span class="field-error">{{ $message }}</span> @enderror
-                    </div>
-                    <div class="form-group">
-                        <label>Galones (boleta)</label>
-                        <input type="number" name="boleta_galones" value="{{ old('boleta_galones') }}" step="0.01" min="0" placeholder="0.00">
-                        @error('boleta_galones') <span class="field-error">{{ $message }}</span> @enderror
-                    </div>
-                    <div class="form-group">
-                        <label>Precio por galón</label>
-                        <input type="number" name="boleta_precio" value="{{ old('boleta_precio') }}" step="0.01" min="0" placeholder="0.00">
-                        @error('boleta_precio') <span class="field-error">{{ $message }}</span> @enderror
-                    </div>
-                    <div class="form-group">
-                        <label>Fecha (boleta)</label>
-                        <input type="date" name="boleta_fecha" value="{{ old('boleta_fecha') }}">
-                        @error('boleta_fecha') <span class="field-error">{{ $message }}</span> @enderror
+                    <div class="form-group" style="min-width:100%">
+                        <label>Nueva(s) boleta(s) (opcional)</label>
+                        <div id="new-boletas">
+                            <div class="boleta-row" data-index="0">
+                                <input type="text" name="new_boletas[0][numero]" placeholder="Número" style="width:22%">
+                                <input type="text" name="new_boletas[0][proveedor]" placeholder="Proveedor" style="width:28%">
+                                <input type="number" step="0.01" min="0" name="new_boletas[0][galones]" placeholder="Galones" style="width:12%">
+                                <input type="number" step="0.01" min="0" name="new_boletas[0][precio]" placeholder="Precio" style="width:12%">
+                                <input type="date" name="new_boletas[0][fecha]" style="width:14%">
+                                <button type="button" class="btn btn-sm" onclick="removeBoletaRow(this)">Eliminar</button>
+                            </div>
+                        </div>
+                        <div style="margin-top:8px">
+                            <button type="button" class="btn" onclick="addBoletaRow()">+ Agregar nueva boleta</button>
+                            <button type="button" class="btn" onclick="splitIntoBoletas()">Dividir galones en boletas</button>
+                            <small class="text-muted" id="boletas-sum">Suma boletas: 0</small>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-foot">
@@ -228,10 +241,12 @@
 document.addEventListener('DOMContentLoaded', function(){
     const select = document.querySelector('#modal-consumo select[name="tramo_id"]');
     const desc = document.getElementById('tramo-desc-modal');
+    const turno = document.getElementById('tramo-turno-modal');
     if(select && desc){
         function update(){
             const opt = select.options[select.selectedIndex];
             desc.textContent = opt ? (opt.dataset.descripcion || '') : '';
+            if(turno) turno.textContent = opt ? (opt.dataset.turno || '') : '';
         }
         select.addEventListener('change', update);
         update();
@@ -246,9 +261,86 @@ document.addEventListener('DOMContentLoaded', function(){
         function upd(){
             const o = sel.options[sel.selectedIndex];
             dest.textContent = o ? (o.dataset.descripcion || '') : '';
+            const turnoEdit = document.getElementById('tramo-turno-edit-' + id);
+            if(turnoEdit) turnoEdit.textContent = o ? (o.dataset.turno || '') : '';
         }
         sel.addEventListener('change', upd);
         upd();
+    });
+    // agregar/remover filas para modales index
+    window.addBoletaRow = function(forId){
+        const container = document.getElementById(forId ? ('new-boletas-' + forId) : 'new-boletas');
+        if(!container) return;
+        const idx = Date.now();
+        const row = document.createElement('div');
+        row.className = 'boleta-row';
+        row.dataset.index = idx;
+        row.innerHTML = `
+            <input type="text" name="new_boletas[${idx}][numero]" placeholder="Número" style="width:22%">
+            <input type="text" name="new_boletas[${idx}][proveedor]" placeholder="Proveedor" style="width:28%">
+            <input type="number" step="0.01" min="0" name="new_boletas[${idx}][galones]" placeholder="Galones" style="width:12%">
+            <input type="number" step="0.01" min="0" name="new_boletas[${idx}][precio]" placeholder="Precio" style="width:12%">
+            <input type="date" name="new_boletas[${idx}][fecha]" style="width:14%">
+            <button type="button" class="btn btn-sm" onclick="removeBoletaRow(this)">Eliminar</button>
+        `;
+        container.appendChild(row);
+    };
+    window.removeBoletaRow = function(btn){ const row = btn.closest('.boleta-row'); if(row) row.remove(); };
+    window.splitIntoBoletas = function(forId){
+        const galInput = document.querySelector((forId ? '#modal-edit-consumo-' + forId : '') + ' input[name="galones"]') || document.querySelector('input[name="galones"]');
+        if(!galInput) return;
+        const total = parseFloat(galInput.value) || 0;
+        if(total <= 0) return alert('Ingresa galones en el consumo primero');
+        const parts = parseInt(prompt('¿En cuántas boletas quieres dividir los ' + total + ' galones?', '2')) || 2;
+        const share = (total / parts).toFixed(2);
+        for(let i=0;i<parts;i++) addBoletaRow(forId);
+        const container = document.getElementById(forId ? ('new-boletas-' + forId) : 'new-boletas');
+        const rows = container.querySelectorAll('.boleta-row');
+        for(let i=rows.length-parts;i<rows.length;i++){
+            const g = rows[i].querySelector('input[name*="[galones]"]'); if(g) g.value = share;
+        }
+    };
+    // Filtrar boletas por vehiculo en modal principal y modales de edición
+    function applyFilterForSel(vehSel, boletasSel){
+        if(!boletasSel) return;
+        const vid = vehSel ? vehSel.value : '';
+        Array.from(boletasSel.options).forEach(opt=>{
+            const ok = !vid || (opt.dataset.vehiculoId == vid);
+            opt.style.display = ok ? '' : 'none';
+            if(!ok) opt.selected = false;
+            opt.disabled = !ok;
+        });
+    }
+    // modal nuevo
+    const mVeh = document.querySelector('#modal-consumo select[name="vehiculo_id"]');
+    const mBoletas = document.querySelector('#modal-consumo select[name="boletas_existing[]"]');
+    if(mVeh && mBoletas){ mVeh.addEventListener('change', ()=>applyFilterForSel(mVeh, mBoletas)); applyFilterForSel(mVeh, mBoletas); }
+    // todos los modales de edición incluidos
+    document.querySelectorAll('.modal-overlay').forEach(function(modal){
+        const vs = modal.querySelector('select[name="vehiculo_id"]');
+        const bs = modal.querySelector('select[name="boletas_existing[]"]');
+        if(vs && bs){ vs.addEventListener('change', ()=>applyFilterForSel(vs, bs)); applyFilterForSel(vs, bs); }
+    });
+    // AJAX pagination: interceptar clicks y reemplazar contenedor `#consumos-list`
+    document.addEventListener('click', function(e){
+        const a = e.target.closest('.pagination a.page-link');
+        if(!a) return;
+        // solo actuamos dentro del listado de consumos
+        if(!document.getElementById('consumos-list')) return;
+        e.preventDefault();
+        const url = a.href;
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.text())
+            .then(html => {
+                // extraer #consumos-list del HTML retornado
+                const tmp = document.createElement('div'); tmp.innerHTML = html;
+                const newList = tmp.querySelector('#consumos-list');
+                if(newList){
+                    const old = document.getElementById('consumos-list');
+                    old.replaceWith(newList);
+                }
+                window.scrollTo({ top: document.querySelector('.content').offsetTop - 12, behavior: 'smooth' });
+            }).catch(()=>{ window.location.href = url; });
     });
 });
 </script>

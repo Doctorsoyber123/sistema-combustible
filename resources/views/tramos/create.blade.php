@@ -35,6 +35,11 @@
                         @error('destino') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
+                        <label>Turno (opcional)</label>
+                        <input type="text" name="turno" value="{{ old('turno') }}" placeholder="Ej: Mañana / Tarde / Noche">
+                        @error('turno') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
                         <label>Descripción (opcional)</label>
                         <textarea name="descripcion" rows="3" placeholder="Detalle de la ruta...">{{ old('descripcion') }}</textarea>
                         @error('descripcion') <span class="field-error">{{ $message }}</span> @enderror

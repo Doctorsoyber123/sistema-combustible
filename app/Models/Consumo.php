@@ -32,4 +32,9 @@ class Consumo extends Model
     {
         return $this->belongsTo(Boleta::class);
     }
+
+    public function boletas()
+    {
+        return $this->belongsToMany(Boleta::class, 'boleta_consumo')->withTimestamps();
+    }
 }

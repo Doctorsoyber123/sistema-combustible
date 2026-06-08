@@ -17,6 +17,7 @@ class ConsumoController extends Controller
         $tramoId    = $request->input('tramo_id');
         $desde      = $request->input('desde');
         $hasta      = $request->input('hasta');
+        $perPage    = in_array($request->input('per_page'), ['10','25','50']) ? (int)$request->input('per_page') : 10;
 
         $query = Consumo::with(['vehiculo', 'tramo'])
             ->when($vehiculoId, fn ($q) => $q->where('vehiculo_id', $vehiculoId))
@@ -27,16 +28,17 @@ class ConsumoController extends Controller
         // Total de galones de TODOS los resultados filtrados (no solo la pagina actual)
         $totalGalones = (clone $query)->sum('galones');
 
-        $consumos = $query->latest()->paginate(10)->withQueryString();
+        $consumos = $query->latest()->paginate($perPage)->withQueryString();
 
         $vehiculos    = Vehiculo::orderBy('codigo')->get();
         $tramos       = Tramo::orderBy('nombre')->get();
         $trabajadores = User::where('role', 'trabajador')->where('activo', true)
-                            ->orderBy('name')->get();
+                    ->orderBy('name')->get();
+        $boletas = Boleta::orderBy('fecha', 'desc')->limit(50)->get();
 
         return view('consumos.index', compact(
             'consumos', 'vehiculos', 'tramos', 'trabajadores', 'totalGalones',
-            'vehiculoId', 'tramoId', 'desde', 'hasta'
+            'vehiculoId', 'tramoId', 'desde', 'hasta', 'boletas', 'perPage'
         ));
     }
 
@@ -46,7 +48,8 @@ class ConsumoController extends Controller
         $tramos       = Tramo::where('activo', true)->orderBy('nombre')->get();
         $trabajadores = User::where('role', 'trabajador')->where('activo', true)
                             ->orderBy('name')->get();
-        return view('consumos.create', compact('vehiculos', 'tramos', 'trabajadores'));
+        $boletas = Boleta::orderBy('fecha', 'desc')->limit(50)->get();
+        return view('consumos.create', compact('vehiculos', 'tramos', 'trabajadores', 'boletas'));
     }
 
     public function store(Request $request)
@@ -60,30 +63,41 @@ class ConsumoController extends Controller
             'observaciones' => 'nullable|string',
         ]);
 
-        // Si viene información de boleta, crearla y asociarla al consumo
-        if ($request->filled('boleta_numero') || $request->filled('boleta_galones')) {
-            $bdata = $request->validate([
-                'boleta_numero' => 'nullable|string|max:100',
-                'boleta_proveedor' => 'nullable|string|max:150',
-                'boleta_galones' => 'nullable|numeric|min:0',
-                'boleta_precio' => 'nullable|numeric|min:0',
-                'boleta_fecha' => 'nullable|date',
-            ]);
+        // crear consumo primero
+        $consumo = Consumo::create($data);
 
-            $boleta = Boleta::create([
-                'numero_boleta' => $bdata['boleta_numero'] ?? null,
-                'vehiculo_id'   => $data['vehiculo_id'],
-                'proveedor'     => $bdata['boleta_proveedor'] ?? null,
-                'galones'       => $bdata['boleta_galones'] ?? ($data['galones'] ?? 0),
-                'precio_galon'  => $bdata['boleta_precio'] ?? null,
-                'total'         => isset($bdata['boleta_galones'], $bdata['boleta_precio']) ? round($bdata['boleta_galones'] * $bdata['boleta_precio'], 2) : null,
-                'fecha'         => $bdata['boleta_fecha'] ?? $data['fecha'],
-            ]);
-
-            $data['boleta_id'] = $boleta->id;
+        // asociar boletas existentes (multi select)
+        if ($request->filled('boletas_existing')) {
+            $existing = array_filter((array)$request->input('boletas_existing'));
+            $consumo->boletas()->syncWithoutDetaching($existing);
         }
 
-        Consumo::create($data);
+        // crear nuevas boletas (repeatable rows)
+        if ($request->has('new_boletas') && is_array($request->input('new_boletas'))) {
+            foreach ($request->input('new_boletas') as $nb) {
+                $numero = $nb['numero'] ?? null;
+                $proveedor = $nb['proveedor'] ?? null;
+                $gal = isset($nb['galones']) && $nb['galones'] !== '' ? (float)$nb['galones'] : null;
+                $precio = isset($nb['precio']) && $nb['precio'] !== '' ? (float)$nb['precio'] : null;
+                $fechaB = $nb['fecha'] ?? null;
+                if (!$numero && !$gal && !$proveedor) {
+                    continue; // fila vacía
+                }
+                $boleta = Boleta::create([
+                    'numero_boleta' => $numero,
+                    'vehiculo_id'   => $data['vehiculo_id'],
+                    'proveedor'     => $proveedor,
+                    'galones'       => $gal ?? 0,
+                    'precio_galon'  => $precio,
+                    'total'         => isset($gal, $precio) ? round($gal * $precio, 2) : null,
+                    'fecha'         => $fechaB ?? $data['fecha'],
+                ]);
+                $consumo->boletas()->attach($boleta->id);
+            }
+        }
+
+        return redirect()->route('consumos.index')
+            ->with('success', 'Consumo registrado correctamente.');
 
         return redirect()->route('consumos.index')
             ->with('success', 'Consumo registrado correctamente.');
@@ -100,29 +114,40 @@ class ConsumoController extends Controller
             'observaciones' => 'nullable|string',
         ]);
 
-        if ($request->filled('boleta_numero') || $request->filled('boleta_galones')) {
-            $bdata = $request->validate([
-                'boleta_numero' => 'nullable|string|max:100',
-                'boleta_proveedor' => 'nullable|string|max:150',
-                'boleta_galones' => 'nullable|numeric|min:0',
-                'boleta_precio' => 'nullable|numeric|min:0',
-                'boleta_fecha' => 'nullable|date',
-            ]);
+        $consumo->update($data);
 
-            $boleta = Boleta::create([
-                'numero_boleta' => $bdata['boleta_numero'] ?? null,
-                'vehiculo_id'   => $data['vehiculo_id'],
-                'proveedor'     => $bdata['boleta_proveedor'] ?? null,
-                'galones'       => $bdata['boleta_galones'] ?? ($data['galones'] ?? 0),
-                'precio_galon'  => $bdata['boleta_precio'] ?? null,
-                'total'         => isset($bdata['boleta_galones'], $bdata['boleta_precio']) ? round($bdata['boleta_galones'] * $bdata['boleta_precio'], 2) : null,
-                'fecha'         => $bdata['boleta_fecha'] ?? $data['fecha'],
-            ]);
-
-            $data['boleta_id'] = $boleta->id;
+        // asociar boletas existentes
+        if ($request->filled('boletas_existing')) {
+            $existing = array_filter((array)$request->input('boletas_existing'));
+            $consumo->boletas()->syncWithoutDetaching($existing);
         }
 
-        $consumo->update($data);
+        // crear/adjuntar nuevas boletas
+        if ($request->has('new_boletas') && is_array($request->input('new_boletas'))) {
+            foreach ($request->input('new_boletas') as $nb) {
+                $numero = $nb['numero'] ?? null;
+                $proveedor = $nb['proveedor'] ?? null;
+                $gal = isset($nb['galones']) && $nb['galones'] !== '' ? (float)$nb['galones'] : null;
+                $precio = isset($nb['precio']) && $nb['precio'] !== '' ? (float)$nb['precio'] : null;
+                $fechaB = $nb['fecha'] ?? null;
+                if (!$numero && !$gal && !$proveedor) {
+                    continue;
+                }
+                $boleta = Boleta::create([
+                    'numero_boleta' => $numero,
+                    'vehiculo_id'   => $data['vehiculo_id'],
+                    'proveedor'     => $proveedor,
+                    'galones'       => $gal ?? 0,
+                    'precio_galon'  => $precio,
+                    'total'         => isset($gal, $precio) ? round($gal * $precio, 2) : null,
+                    'fecha'         => $fechaB ?? $data['fecha'],
+                ]);
+                $consumo->boletas()->attach($boleta->id);
+            }
+        }
+
+        return redirect()->route('consumos.index')
+            ->with('success', 'Consumo actualizado correctamente.');
 
         return redirect()->route('consumos.index')
             ->with('success', 'Consumo actualizado correctamente.');

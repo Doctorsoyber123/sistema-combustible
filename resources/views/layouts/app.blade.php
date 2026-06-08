@@ -193,6 +193,10 @@
         /* FORMS */
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         .form-group { display: flex; flex-direction: column; gap: 6px; }
+        /* BOLETAS: filas responsivas para inputs de boleta (número, proveedor, galones, precio, fecha) */
+        .boleta-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+        .boleta-row input[type="text"], .boleta-row input[type="number"], .boleta-row input[type="date"] { flex: 1 1 140px; min-width:120px; }
+        .boleta-row button { flex: 0 0 auto; }
         .form-group.full { grid-column: 1 / -1; }
         label { font-size: 12px; color: var(--text2); font-weight: 500; }
         input, select, textarea {
@@ -322,6 +326,9 @@
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
             .row2, .form-grid { grid-template-columns: 1fr; }
 
+            /* En pantallas chicas, asegurar que las filas de boletas ocupen 100% */
+            .boleta-row input[type="text"], .boleta-row input[type="number"], .boleta-row input[type="date"] { flex: 1 1 100%; min-width: 0; }
+
             /* Sidebar fuera de pantalla por defecto, se desliza al abrir */
             .sidebar {
                 position: fixed; top: 0; left: 0; z-index: 250;
@@ -393,6 +400,7 @@
             /* Paginacion mas compacta */
             .pagination-wrap { padding: 10px 12px; }
             .pagination .page-link { min-width: 30px; height: 30px; font-size: 12px; padding: 0 7px; }
+            .pagination { flex-wrap: wrap; gap:6px; }
         }
     </style>
     @stack('styles')
