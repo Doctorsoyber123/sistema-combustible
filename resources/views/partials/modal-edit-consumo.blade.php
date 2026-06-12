@@ -37,8 +37,18 @@
                         @if($isEditing) @error('tramo_id') <span class="field-error">{{ $message }}</span> @enderror @endif
                     </div>
                     <div class="form-group">
-                        <label>Galones usados</label>
-                        <input type="number" name="galones" step="0.01" min="0.01" value="{{ $isEditing ? old('galones', $c->galones) : $c->galones }}" required>
+                        <label style="display:flex;align-items:center;gap:6px">
+                            Galones usados
+                            <span style="font-size:10px;font-weight:500;padding:1px 7px;
+                                         border-radius:20px;background:#fff4e6;color:#c06000;
+                                         border:1px solid #f5c589">
+                                <i class="ti ti-arrows-transfer-down" style="font-size:10px"></i> del tramo
+                            </span>
+                        </label>
+                        <input type="number" name="galones" step="0.01" min="0.01"
+                               value="{{ $isEditing ? old('galones', $c->galones) : $c->galones }}"
+                               readonly required
+                               style="background:var(--surface2,#f5f5f3);cursor:not-allowed;color:var(--text2)">
                         @if($isEditing) @error('galones') <span class="field-error">{{ $message }}</span> @enderror @endif
                     </div>
                     <div class="form-group">

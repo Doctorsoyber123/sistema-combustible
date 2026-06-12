@@ -163,7 +163,7 @@
                             <label style="display:flex;align-items:center;gap:6px">
                                 Galones usados
                                 <span id="galones-hint-nuevo"
-                                      style="display:none;font-size:10px;font-weight:500;padding:1px 7px;
+                                      style="font-size:10px;font-weight:500;padding:1px 7px;
                                              border-radius:20px;background:#fff4e6;color:#c06000;
                                              border:1px solid #f5c589">
                                     <i class="ti ti-arrows-transfer-down" style="font-size:10px"></i> del tramo
@@ -171,7 +171,9 @@
                             </label>
                             <input type="number" name="galones" id="inp-galones-nuevo"
                                    value="{{ old('galones') }}"
-                                   step="0.01" min="0.01" placeholder="0.00" required>
+                                   step="0.01" min="0.01" placeholder="Selecciona un tramo…"
+                                   readonly required
+                                   style="background:var(--surface2,#f5f5f3);cursor:not-allowed;color:var(--text2)">
                             @error('galones') <span class="field-error">{{ $message }}</span> @enderror
                         </div>
 
@@ -510,12 +512,8 @@ document.addEventListener('DOMContentLoaded', function(){
             const gal = opt ? opt.dataset.galones : '';
             if (gal && parseFloat(gal) > 0) {
                 inpGalonesNuevo.value = parseFloat(gal).toFixed(2);
-                inpGalonesNuevo.style.transition = 'background .3s';
-                inpGalonesNuevo.style.background  = '#fff8ee';
-                if (galonesHintNuevo) galonesHintNuevo.style.display = 'inline';
-                setTimeout(() => { inpGalonesNuevo.style.background = ''; }, 1200);
             } else {
-                if (galonesHintNuevo) galonesHintNuevo.style.display = 'none';
+                inpGalonesNuevo.value = '';
             }
         });
     }
@@ -528,12 +526,7 @@ document.addEventListener('DOMContentLoaded', function(){
         selTramo.addEventListener('change', function() {
             const opt = this.options[this.selectedIndex];
             const gal = opt ? opt.dataset.galones : '';
-            if (gal && parseFloat(gal) > 0) {
-                inpGalones.value = parseFloat(gal).toFixed(2);
-                inpGalones.style.transition = 'background .3s';
-                inpGalones.style.background  = '#fff8ee';
-                setTimeout(() => { inpGalones.style.background = ''; }, 1200);
-            }
+            inpGalones.value = (gal && parseFloat(gal) > 0) ? parseFloat(gal).toFixed(2) : '';
         });
     });
 
