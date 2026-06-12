@@ -31,11 +31,13 @@ class TramoController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'nombre'  => 'required|string|max:150',
-            'origen'  => 'required|string|max:150',
-            'destino' => 'required|string|max:150',
-            'km'      => 'required|numeric|min:0.1',
+            'nombre'      => 'required|string|max:150',
+            'origen'      => 'required|string|max:150',
+            'destino'     => 'required|string|max:150',
+            'km'          => 'required|numeric|min:0.1',
             'descripcion' => 'nullable|string',
+            'turno'       => 'nullable|string|max:100',
+            'galones'     => 'nullable|numeric|min:0',
         ]);
 
         Tramo::create($data);
@@ -47,11 +49,13 @@ class TramoController extends Controller
     public function update(Request $request, Tramo $tramo)
     {
         $data = $request->validate([
-            'nombre'  => 'required|string|max:150',
-            'origen'  => 'required|string|max:150',
-            'destino' => 'required|string|max:150',
-            'km'      => 'required|numeric|min:0.1',
+            'nombre'      => 'required|string|max:150',
+            'origen'      => 'required|string|max:150',
+            'destino'     => 'required|string|max:150',
+            'km'          => 'required|numeric|min:0.1',
             'descripcion' => 'nullable|string',
+            'turno'       => 'nullable|string|max:100',
+            'galones'     => 'nullable|numeric|min:0',
         ]);
 
         $tramo->update($data);

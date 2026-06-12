@@ -35,6 +35,11 @@
                         @error('destino') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                     <div class="form-group">
+                        <label>Galones (opcional)</label>
+                        <input type="number" name="galones" value="{{ old('galones') }}" step="0.01" min="0" placeholder="0.00">
+                        @error('galones') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
                         <label>Turno (opcional)</label>
                         <input type="text" name="turno" value="{{ old('turno') }}" placeholder="Ej: Mañana / Tarde / Noche">
                         @error('turno') <span class="field-error">{{ $message }}</span> @enderror

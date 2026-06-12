@@ -33,7 +33,7 @@
         <div style="padding:0 6px 6px">
             <table>
                 <thead>
-                    <tr><th>Nombre</th><th>Origen</th><th>Destino</th><th>Distancia</th><th></th></tr>
+                    <tr><th>Nombre</th><th>Origen</th><th>Destino</th><th>Distancia</th><th>Galones</th><th></th></tr>
                 </thead>
                 <tbody>
                     @foreach($tramos as $t)
@@ -47,6 +47,7 @@
                             <td>{{ $t->origen ?? '-' }}</td>
                             <td>{{ $t->destino ?? '-' }}</td>
                             <td class="mono">{{ rtrim(rtrim(number_format($t->km, 2), '0'), '.') }} km</td>
+                            <td class="mono">{{ $t->galones ? rtrim(rtrim(number_format($t->galones, 2), '0'), '.') . ' gl' : '-' }}</td>
                             <td style="text-align:right;white-space:nowrap">
                                 <button type="button" class="btn btn-sm" onclick="openModal('modal-edit-tramo-{{ $t->id }}')" title="Editar">
                                     <i class="ti ti-edit"></i>
@@ -97,6 +98,21 @@
                         <label>Punto de destino</label>
                         <input type="text" name="destino" value="{{ old('destino') }}" placeholder="Ej: Planta procesadora" required>
                         @error('destino') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Galones (opcional)</label>
+                        <input type="number" name="galones" value="{{ old('galones') }}" step="0.01" min="0" placeholder="0.00">
+                        @error('galones') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Turno (opcional)</label>
+                        <input type="text" name="turno" value="{{ old('turno') }}" placeholder="Ej: Mañana / Tarde / Noche">
+                        @error('turno') <span class="field-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <label>Descripción (opcional)</label>
+                        <textarea name="descripcion" rows="3" placeholder="Detalle de la ruta...">{{ old('descripcion') }}</textarea>
+                        @error('descripcion') <span class="field-error">{{ $message }}</span> @enderror
                     </div>
                 </div>
             </div>
