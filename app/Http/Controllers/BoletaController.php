@@ -70,7 +70,19 @@ class BoletaController extends Controller
             $data['evidencia'] = $archivo->store('boletas', 'public');
         }
 
-        Boleta::create($data);
+        $boleta = Boleta::create($data);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'id' => $boleta->id,
+                'numero_boleta' => $boleta->numero_boleta,
+                'proveedor' => $boleta->proveedor,
+                'galones' => $boleta->galones,
+                'precio_galon' => $boleta->precio_galon,
+                'total' => $boleta->total,
+                'fecha' => $boleta->fecha ? $boleta->fecha->toDateString() : null,
+            ], 201);
+        }
 
         return redirect()->route('boletas.index')
             ->with('success', 'Boleta registrada correctamente.');
