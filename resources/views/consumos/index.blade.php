@@ -302,16 +302,50 @@
                                         text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">
                                 Asociar boleta existente
                             </div>
-                            <div class="form-group">
-                                <label>Número de boleta</label>
-                                <input type="text" id="ex_numero" placeholder="Buscar por número…"
-                                       list="boletas-existentes-list" autocomplete="off">
-                                <datalist id="boletas-existentes-list">
-                                    @foreach($boletasDisponibles ?? [] as $b)
-                                        <option value="{{ $b->numero_boleta }}">{{ $b->proveedor }} — {{ $b->galones }} gal</option>
-                                    @endforeach
-                                </datalist>
+
+                            {{-- Buscador --}}
+                            <div style="position:relative;margin-bottom:8px">
+                                <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none"></i>
+                                <input type="text" id="ex_search"
+                                       placeholder="Buscar por número, proveedor…"
+                                       autocomplete="off"
+                                       oninput="filterBoletasExistentes()"
+                                       style="width:100%;padding:7px 10px 7px 32px;box-sizing:border-box">
                             </div>
+
+                            {{-- Lista scrollable --}}
+                            <div id="ex_lista"
+                                 style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;
+                                        gap:4px;border:0.5px solid var(--border);border-radius:var(--radius,8px);
+                                        padding:6px;background:var(--surface2,#f8f8f6)">
+                                @forelse($boletasDisponibles ?? [] as $b)
+                                    <div class="ex-boleta-row"
+                                         data-numero="{{ $b->numero_boleta }}"
+                                         data-search="{{ strtolower($b->numero_boleta . ' ' . $b->proveedor) }}"
+                                         onclick="selectBoletaExistente(this)"
+                                         style="display:flex;align-items:center;gap:10px;padding:7px 10px;
+                                                border-radius:calc(var(--radius,8px) - 2px);
+                                                cursor:pointer;background:var(--surface,#fff);
+                                                border:0.5px solid transparent;transition:.15s">
+                                        <i class="ti ti-receipt" style="font-size:15px;color:var(--text3);flex-shrink:0"></i>
+                                        <div style="flex:1;min-width:0">
+                                            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                                                {{ $b->numero_boleta }}
+                                            </div>
+                                            <div style="font-size:11px;color:var(--text3)">
+                                                {{ $b->proveedor }} &middot; {{ number_format($b->galones, 2) }} gal
+                                            </div>
+                                        </div>
+                                        <i class="ti ti-circle-check ex-check" style="font-size:17px;color:transparent"></i>
+                                    </div>
+                                @empty
+                                    <div style="text-align:center;padding:16px 0;color:var(--text3);font-size:12px">
+                                        <i class="ti ti-receipt-off" style="font-size:20px;display:block;margin-bottom:4px"></i>
+                                        Sin boletas disponibles
+                                    </div>
+                                @endforelse
+                            </div>
+
                             <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
                                 <button type="button" class="btn" onclick="toggleBoletaForm('existente')">Cancelar</button>
                                 <button type="button" class="btn btn-primary" onclick="saveExistingBoleta()">Asociar</button>
@@ -443,12 +477,49 @@ function saveNewBoleta() {
     renderBoletas();
 }
 
-function saveExistingBoleta() {
-    const numero = document.getElementById('ex_numero').value.trim();
-    if (!numero) { document.getElementById('ex_numero').focus(); return; }
+function selectBoletaExistente(el) {
+    // deselect all
+    document.querySelectorAll('#ex_lista .ex-boleta-row').forEach(r => {
+        r.style.background      = 'var(--surface,#fff)';
+        r.style.borderColor     = 'transparent';
+        r.querySelector('.ex-check').style.color = 'transparent';
+    });
+    // select clicked
+    el.style.background  = '#e8f5e9';
+    el.style.borderColor = '#4caf50';
+    el.querySelector('.ex-check').style.color = '#388e3c';
+}
 
+function filterBoletasExistentes() {
+    const q = document.getElementById('ex_search').value.toLowerCase().trim();
+    document.querySelectorAll('#ex_lista .ex-boleta-row').forEach(r => {
+        r.style.display = (!q || r.dataset.search.includes(q)) ? 'flex' : 'none';
+    });
+}
+
+function saveExistingBoleta() {
+    const selected = document.querySelector('#ex_lista .ex-boleta-row[style*="#e8f5e9"]');
+    if (!selected) {
+        // shake search box lightly if nothing selected
+        const s = document.getElementById('ex_search');
+        s.style.outline = '2px solid #e85d04';
+        setTimeout(() => { s.style.outline = ''; }, 1000);
+        return;
+    }
+    const numero = selected.dataset.numero;
+    if (boletasExistentes.some(b => b.numero === numero)) {
+        toggleBoletaForm('__none__');
+        return; // already added
+    }
     boletasExistentes.push({ numero });
-    document.getElementById('ex_numero').value = '';
+    // reset search + deselect
+    document.getElementById('ex_search').value = '';
+    filterBoletasExistentes();
+    document.querySelectorAll('#ex_lista .ex-boleta-row').forEach(r => {
+        r.style.background  = 'var(--surface,#fff)';
+        r.style.borderColor = 'transparent';
+        r.querySelector('.ex-check').style.color = 'transparent';
+    });
     toggleBoletaForm('__none__');
     renderBoletas();
 }
