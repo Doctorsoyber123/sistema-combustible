@@ -34,11 +34,12 @@ class ConsumoController extends Controller
         $tramos       = Tramo::orderBy('nombre')->get();
         $trabajadores = User::where('role', 'trabajador')->where('activo', true)
                     ->orderBy('name')->get();
-        $boletas = Boleta::orderBy('fecha', 'desc')->limit(50)->get();
+        $boletas = Boleta::orderBy('fecha', 'desc')->limit(200)->get();
+        $boletasDisponibles = $boletas;
 
         return view('consumos.index', compact(
             'consumos', 'vehiculos', 'tramos', 'trabajadores', 'totalGalones',
-            'vehiculoId', 'tramoId', 'desde', 'hasta', 'boletas', 'perPage'
+            'vehiculoId', 'tramoId', 'desde', 'hasta', 'boletas', 'boletasDisponibles', 'perPage'
         ));
     }
 
