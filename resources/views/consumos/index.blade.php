@@ -479,9 +479,6 @@ function syncHiddenInputs() {
     });
 }
 </script>
-        @endif
-    </div>
-</div>
 
 {{-- Modales de edicion (uno por cada fila) --}}
 @foreach($consumos as $c)
