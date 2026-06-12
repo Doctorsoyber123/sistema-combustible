@@ -58,23 +58,6 @@ class DatabaseSeeder extends Seeder
             ['nombre' => 'Almacén - Obra',   'origen' => 'Almacén central',   'destino' => 'Obra norte',         'km' => 8.3],
         ])->map(fn ($t) => Tramo::create($t));
 
-        // Lista de rutas reales (codigo, turno, frecuencia, descripcion)
-
-        $extraTramos = collect($routes)->map(function ($r) {
-            // intentar extraer primer y último punto como origen/destino
-            $parts = array_values(array_filter(array_map(fn($s) => trim($s), preg_split('/,|;|\\n/', $r['descripcion'] ?? ''))));
-            $origen = $parts[0] ?? 'N/A';
-            $destino = $parts[count($parts) - 1] ?? 'N/A';
-            return Tramo::create([
-                'nombre' => trim($r['codigo'] . ' - ' . ($r['turno'] ?? '')),
-                'origen' => $origen,
-                'destino' => $destino,
-                'km' => 0.00,
-            ]);
-        });
-
-        // combinar tramos ejemplo + tramos reales en una sola colección (mantiene índices)
-        $tramos = $tramos->concat($extraTramos)->values();
 
         // ── Consumos ──
         $consumos = [
