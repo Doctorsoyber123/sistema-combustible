@@ -28,15 +28,13 @@
                     <div class="form-group">
                         <label>Tramo</label>
                         <select name="tramo_id" required>
-                            @foreach($tramos as $t)
-                                <option value="{{ $t->id }}" data-descripcion="{{ e($t->descripcion) }}" data-turno="{{ e($t->turno) }}" @selected($tramoSel == $t->id)>{{ $t->nombre }}</option>
-                            @endforeach
+                             @foreach($tramos as $t)
+                                 <option value="{{ $t->id }}"
+                                         data-galones="{{ $t->galones ?? '' }}"
+                                         @selected($tramoSel == $t->id)>{{ $t->nombre }}</option>
+                             @endforeach
                         </select>
                         @if($isEditing) @error('tramo_id') <span class="field-error">{{ $message }}</span> @enderror @endif
-                    </div>
-                    <div class="form-group">
-                        <small id="tramo-turno-edit-{{ $c->id }}" class="text-muted" style="display:block;font-weight:600">{{ $isEditing ? old('tramo_turno', $c->tramo->turno ?? '') : ($c->tramo->turno ?? '') }}</small>
-                        <small id="tramo-desc-edit-{{ $c->id }}" class="text-muted">{{ $isEditing ? old('tramo_descripcion', $c->tramo->descripcion ?? '') : ($c->tramo->descripcion ?? '') }}</small>
                     </div>
                     <div class="form-group">
                         <label>Galones usados</label>

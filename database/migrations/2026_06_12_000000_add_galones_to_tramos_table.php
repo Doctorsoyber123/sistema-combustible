@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tramos', function (Blueprint $table) {
-            $table->decimal('galones', 8, 2)->nullable()->after('km');
+            $table->decimal('galones', 8, 2)->default(0.00)->after('km');
         });
     }
 

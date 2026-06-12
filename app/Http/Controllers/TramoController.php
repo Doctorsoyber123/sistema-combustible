@@ -35,9 +35,7 @@ class TramoController extends Controller
             'origen'      => 'required|string|max:150',
             'destino'     => 'required|string|max:150',
             'km'          => 'required|numeric|min:0.1',
-            'descripcion' => 'nullable|string',
-            'turno'       => 'nullable|string|max:100',
-            'galones'     => 'nullable|numeric|min:0',
+            'galones'     => 'required|numeric|min:0',
         ]);
 
         Tramo::create($data);
@@ -53,9 +51,7 @@ class TramoController extends Controller
             'origen'      => 'required|string|max:150',
             'destino'     => 'required|string|max:150',
             'km'          => 'required|numeric|min:0.1',
-            'descripcion' => 'nullable|string',
-            'turno'       => 'nullable|string|max:100',
-            'galones'     => 'nullable|numeric|min:0',
+            'galones'     => 'required|numeric|min:0',
         ]);
 
         $tramo->update($data);

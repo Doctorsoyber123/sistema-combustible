@@ -32,20 +32,10 @@
                         @if($isEditing) @error('destino') <span class="field-error">{{ $message }}</span> @enderror @endif
                     </div>
                         <div class="form-group">
-                            <label>Galones (opcional)</label>
-                            <input type="number" name="galones" step="0.01" min="0" value="{{ $isEditing ? old('galones', $t->galones) : $t->galones }}" placeholder="0.00">
+                            <label>Galones</label>
+                            <input type="number" name="galones" step="0.01" min="0" value="{{ $isEditing ? old('galones', $t->galones) : $t->galones }}" placeholder="0.00" required>
                             @if($isEditing) @error('galones') <span class="field-error">{{ $message }}</span> @enderror @endif
                         </div>
-                        <div class="form-group">
-                            <label>Turno (opcional)</label>
-                            <input type="text" name="turno" value="{{ $isEditing ? old('turno', $t->turno) : $t->turno }}" placeholder="Ej: Mañana / Tarde / Noche">
-                            @if($isEditing) @error('turno') <span class="field-error">{{ $message }}</span> @enderror @endif
-                        </div>
-                    <div class="form-group">
-                        <label>Descripción (opcional)</label>
-                        <textarea name="descripcion" rows="3">{{ $isEditing ? old('descripcion', $t->descripcion) : $t->descripcion }}</textarea>
-                        @if($isEditing) @error('descripcion') <span class="field-error">{{ $message }}</span> @enderror @endif
-                    </div>
                 </div>
             </div>
             <div class="modal-foot">

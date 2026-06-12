@@ -37,16 +37,12 @@
                         <select name="tramo_id" required>
                             <option value="">Seleccionar...</option>
                             @foreach($tramos as $t)
-                                <option value="{{ $t->id }}" data-descripcion="{{ e($t->descripcion) }}" data-turno="{{ e($t->turno) }}" @selected(old('tramo_id') == $t->id)>
+                                <option value="{{ $t->id }}" @selected(old('tramo_id') == $t->id)>
                                     {{ $t->nombre }} ({{ rtrim(rtrim(number_format($t->km, 2), '0'), '.') }} km)
                                 </option>
                             @endforeach
                         </select>
                         @error('tramo_id') <span class="field-error">{{ $message }}</span> @enderror
-                    </div>
-                    <div class="form-group">
-                        <small id="tramo-turno" class="text-muted" style="display:block;font-weight:600">{{ old('tramo_turno') }}</small>
-                        <small id="tramo-desc" class="text-muted">{{ old('tramo_descripcion') }}</small>
                     </div>
                     <div class="form-group">
                         <label>Galones usados</label>
@@ -163,16 +159,7 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-    // tramo description/turno update
-    const select = document.querySelector('select[name="tramo_id"]');
-    const desc = document.getElementById('tramo-desc');
-    function update(){
-        const opt = select.options[select.selectedIndex];
-        desc.textContent = opt ? (opt.dataset.descripcion || '') : '';
-        const turnoEl = document.getElementById('tramo-turno');
-        if(turnoEl) turnoEl.textContent = opt ? (opt.dataset.turno || '') : '';
-    }
-    if(select){ select.addEventListener('change', update); update(); }
+    // tramo description/turno update logic removed as those fields were deleted
 
     // Boletas client-side handling for create form
     let newIdx = 0;
