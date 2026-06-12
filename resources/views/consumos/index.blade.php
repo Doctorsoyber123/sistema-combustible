@@ -182,36 +182,244 @@
                     </div>
                 </div>
                 <hr>
-                <h4>Boletas (opcional)</h4>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Seleccionar boletas existentes</label>
-                        <select name="boletas_existing[]" multiple style="min-height:90px">
-                            @foreach($boletas as $b)
-                                <option value="{{ $b->id }}" data-vehiculo-id="{{ $b->vehiculo_id }}" data-placa="{{ optional($b->vehiculo)->placa }}">{{ $b->numero_boleta }} — {{ $b->proveedor }} — {{ optional($b->fecha)->format('d/m/Y') }}</option>
-                            @endforeach
-                        </select>
-                        <small class="text-muted">Mantén presionada la tecla Ctrl/Cmd para seleccionar varias.</small>
+
+                {{-- SECCIÓN BOLETAS --}}
+                <div style="padding:0 16px 16px">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                        <span style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px">
+                            <i class="ti ti-receipt" style="font-size:16px;color:var(--text2)"></i>
+                            Boletas asociadas
+                            <span id="boletas-count"
+                                  style="font-size:11px;padding:2px 8px;border-radius:20px;background:var(--info-bg,#e6f1fb);color:var(--info,#185fa5)">
+                                0
+                            </span>
+                        </span>
+                        <span style="font-size:11px;color:var(--text3)">Opcional</span>
                     </div>
-                    <div class="form-group" style="min-width:100%">
-                        <label>Nueva(s) boleta(s) (opcional)</label>
-                        <div id="new-boletas">
-                            <div class="boleta-row" data-index="0">
-                                <input type="text" name="new_boletas[0][numero]" placeholder="Número" style="width:22%">
-                                <input type="text" name="new_boletas[0][proveedor]" placeholder="Proveedor" style="width:28%">
-                                <input type="number" step="0.01" min="0" name="new_boletas[0][galones]" placeholder="Galones" style="width:12%">
-                                <input type="number" step="0.01" min="0" name="new_boletas[0][precio]" placeholder="Precio" style="width:12%">
-                                <input type="date" name="new_boletas[0][fecha]" style="width:14%">
-                                <button type="button" class="btn btn-sm" onclick="removeBoletaRow(this)">Eliminar</button>
+
+                    <div style="background:var(--surface2,#f8f8f6);border:0.5px solid var(--border);border-radius:var(--radius-lg,12px);padding:12px">
+
+                        {{-- Lista de boletas añadidas --}}
+                        <div id="boletas-list" style="display:flex;flex-direction:column;gap:6px">
+                            <div id="boletas-empty" style="text-align:center;padding:12px 0;color:var(--text3);font-size:12px">
+                                <i class="ti ti-receipt-off" style="font-size:20px;display:block;margin-bottom:4px"></i>
+                                Sin boletas aún
                             </div>
                         </div>
-                        <div style="margin-top:8px">
-                            <button type="button" class="btn" onclick="addBoletaRow()">+ Agregar nueva boleta</button>
-                            <button type="button" class="btn" onclick="splitIntoBoletas()">Dividir galones en boletas</button>
-                            <small class="text-muted" id="boletas-sum">Suma boletas: 0</small>
+
+                        <div style="height:0.5px;background:var(--border);margin:12px 0"></div>
+
+                        {{-- Botones toggle --}}
+                        <div style="display:flex;gap:8px">
+                            <button type="button" class="btn" style="flex:1" onclick="toggleBoletaForm('nueva')">
+                                <i class="ti ti-plus"></i> Nueva boleta
+                            </button>
+                            <button type="button" class="btn" style="flex:1" onclick="toggleBoletaForm('existente')">
+                                <i class="ti ti-link"></i> Boleta existente
+                            </button>
                         </div>
+
+                        {{-- Formulario inline: Nueva boleta --}}
+                        <div id="form-boleta-nueva"
+                             style="display:none;margin-top:12px;background:var(--surface,#fff);border:0.5px solid var(--border);border-radius:var(--radius,8px);padding:12px">
+                            <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">
+                                Crear nueva boleta
+                            </div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Número</label>
+                                    <input type="text" id="nb_numero" placeholder="001-00123456">
+                                </div>
+                                <div class="form-group">
+                                    <label>Proveedor</label>
+                                    <input type="text" id="nb_proveedor" placeholder="Petroperu, Primax…">
+                                </div>
+                                <div class="form-group">
+                                    <label>Galones</label>
+                                    <input type="number" step="0.01" id="nb_galones" placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label>Precio unitario</label>
+                                    <input type="number" step="0.01" id="nb_precio" placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label>Fecha</label>
+                                    <input type="date" id="nb_fecha" value="{{ date('Y-m-d') }}">
+                                </div>
+                            </div>
+                            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+                                <button type="button" class="btn" onclick="toggleBoletaForm('nueva')">Cancelar</button>
+                                <button type="button" class="btn btn-primary" onclick="saveNewBoleta()">Guardar boleta</button>
+                            </div>
+                        </div>
+
+                        {{-- Formulario inline: Boleta existente --}}
+                        <div id="form-boleta-existente"
+                             style="display:none;margin-top:12px;background:var(--surface,#fff);border:0.5px solid var(--border);border-radius:var(--radius,8px);padding:12px">
+                            <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px">
+                                Asociar boleta existente
+                            </div>
+                            <div class="form-group">
+                                <label>Número de boleta</label>
+                                <input type="text" id="ex_numero" placeholder="Buscar por número…"
+                                       list="boletas-existentes-list" autocomplete="off">
+                                {{-- Puedes poblar este datalist desde el controlador --}}
+                                <datalist id="boletas-existentes-list">
+                                    @foreach($boletasDisponibles ?? [] as $b)
+                                        <option value="{{ $b->numero_boleta }}">{{ $b->proveedor }} — {{ $b->galones }} gal</option>
+                                    @endforeach
+                                </datalist>
+                            </div>
+                            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+                                <button type="button" class="btn" onclick="toggleBoletaForm('existente')">Cancelar</button>
+                                <button type="button" class="btn btn-primary" onclick="saveExistingBoleta()">Asociar</button>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
+
+                {{-- Inputs ocultos para el controller --}}
+                <div id="hidden-new-boletas"></div>
+                <div id="hidden-boletas-existing"></div>
+                <script>
+                // ── Boletas ──────────────────────────────────────────────
+                let boletasNuevas = [];
+                let boletasExistentes = [];
+
+                function toggleBoletaForm(tipo) {
+                    const ids = ['nueva', 'existente'];
+                    ids.forEach(t => {
+                        const el = document.getElementById('form-boleta-' + t);
+                        if (t === tipo) {
+                            el.style.display = el.style.display === 'none' ? 'block' : 'none';
+                        } else {
+                            el.style.display = 'none';
+                        }
+                    });
+                }
+
+                function renderBoletas() {
+                    const list = document.getElementById('boletas-list');
+                    const empty = document.getElementById('boletas-empty');
+                    const total = boletasNuevas.length + boletasExistentes.length;
+
+                    document.getElementById('boletas-count').textContent = total;
+
+                    // Limpiar items previos (no el empty)
+                    list.querySelectorAll('.boleta-item').forEach(el => el.remove());
+
+                    if (total === 0) {
+                        empty.style.display = 'block';
+                        return;
+                    }
+                    empty.style.display = 'none';
+
+                    boletasNuevas.forEach((b, i) => {
+                        const meta = [b.proveedor, b.galones ? b.galones + ' gal' : '', b.precio ? 'S/ ' + b.precio + '/gal' : '']
+                            .filter(Boolean).join(' · ');
+                        list.insertAdjacentHTML('beforeend', `
+                            <div class="boleta-item" style="display:flex;align-items:center;gap:10px;padding:8px 10px;
+                                 background:var(--surface2,#f8f8f6);border-radius:var(--radius,8px);
+                                 border:0.5px solid var(--border)">
+                                <i class="ti ti-receipt" style="font-size:16px;color:var(--text2);flex-shrink:0"></i>
+                                <div style="flex:1;min-width:0">
+                                    <div style="font-size:13px;font-weight:500">${b.numero}</div>
+                                    <div style="font-size:11px;color:var(--text3)">${meta}</div>
+                                </div>
+                                <button type="button" onclick="removeNueva(${i})"
+                                        style="border:none;background:none;cursor:pointer;padding:2px 6px;
+                                               border-radius:var(--radius,8px);color:var(--text3)"
+                                        onmouseover="this.style.background='var(--danger-bg,#fcebeb)';this.style.color='var(--danger,#a32d2d)'"
+                                        onmouseout="this.style.background='none';this.style.color='var(--text3)'>
+                                    <i class="ti ti-x" style="font-size:14px"></i>
+                                </button>
+                            </div>`);
+                    });
+
+                    boletasExistentes.forEach((b, i) => {
+                        list.insertAdjacentHTML('beforeend', `
+                            <div class="boleta-item" style="display:flex;align-items:center;gap:10px;padding:8px 10px;
+                                 background:var(--surface2,#f8f8f6);border-radius:var(--radius,8px);
+                                 border:0.5px solid var(--border)">
+                                <i class="ti ti-link" style="font-size:16px;color:var(--text2);flex-shrink:0"></i>
+                                <div style="flex:1;min-width:0">
+                                    <div style="font-size:13px;font-weight:500">${b.numero}</div>
+                                    <div style="font-size:11px;color:var(--text3)">Boleta existente</div>
+                                </div>
+                                <button type="button" onclick="removeExistente(${i})"
+                                        style="border:none;background:none;cursor:pointer;padding:2px 6px;
+                                               border-radius:var(--radius,8px);color:var(--text3)"
+                                        onmouseover="this.style.background='var(--danger-bg,#fcebeb)';this.style.color='var(--danger,#a32d2d)'"
+                                        onmouseout="this.style.background='none';this.style.color='var(--text3)'>
+                                    <i class="ti ti-x" style="font-size:14px"></i>
+                                </button>
+                            </div>`);
+                    });
+
+                    syncHiddenInputs();
+                }
+
+                function saveNewBoleta() {
+                    const numero = document.getElementById('nb_numero').value.trim();
+                    if (!numero) { document.getElementById('nb_numero').focus(); return; }
+
+                    boletasNuevas.push({
+                        numero,
+                        proveedor: document.getElementById('nb_proveedor').value,
+                        galones:   document.getElementById('nb_galones').value,
+                        precio:    document.getElementById('nb_precio').value,
+                        fecha:     document.getElementById('nb_fecha').value,
+                    });
+
+                    ['nb_numero','nb_proveedor','nb_galones','nb_precio'].forEach(id => {
+                        document.getElementById(id).value = '';
+                    });
+                    document.getElementById('nb_fecha').value = '{{ date("Y-m-d") }}';
+
+                    toggleBoletaForm('nueva');
+                    renderBoletas();
+                }
+
+                function saveExistingBoleta() {
+                    const numero = document.getElementById('ex_numero').value.trim();
+                    if (!numero) { document.getElementById('ex_numero').focus(); return; }
+
+                    boletasExistentes.push({ numero });
+                    document.getElementById('ex_numero').value = '';
+
+                    toggleBoletaForm('existente');
+                    renderBoletas();
+                }
+
+                function removeNueva(i)     { boletasNuevas.splice(i, 1);     renderBoletas(); }
+                function removeExistente(i) { boletasExistentes.splice(i, 1); renderBoletas(); }
+
+                function syncHiddenInputs() {
+                    const containerN = document.getElementById('hidden-new-boletas');
+                    const containerE = document.getElementById('hidden-boletas-existing');
+                    containerN.innerHTML = '';
+                    containerE.innerHTML = '';
+
+                    boletasNuevas.forEach((b, i) => {
+                        ['numero','proveedor','galones','precio','fecha'].forEach(campo => {
+                            const inp = document.createElement('input');
+                            inp.type  = 'hidden';
+                            inp.name  = `new_boletas[${i}][${campo}]`;
+                            inp.value = b[campo] ?? '';
+                            containerN.appendChild(inp);
+                        });
+                    });
+
+                    boletasExistentes.forEach((b, i) => {
+                        const inp = document.createElement('input');
+                        inp.type  = 'hidden';
+                        inp.name  = `existing_boletas[${i}]`;
+                        inp.value = b.numero;
+                        containerE.appendChild(inp);
+                    });
+                }
+                </script>
                 <div class="modal-foot">
                     <button type="button" class="btn" onclick="closeModal('modal-consumo')">Cancelar</button>
                     <button type="submit" class="btn btn-primary"><i class="ti ti-check"></i> Registrar consumo</button>
@@ -267,39 +475,7 @@ document.addEventListener('DOMContentLoaded', function(){
         sel.addEventListener('change', upd);
         upd();
     });
-    // agregar/remover filas para modales index
-    window.addBoletaRow = function(forId){
-        const container = document.getElementById(forId ? ('new-boletas-' + forId) : 'new-boletas');
-        if(!container) return;
-        const idx = Date.now();
-        const row = document.createElement('div');
-        row.className = 'boleta-row';
-        row.dataset.index = idx;
-        row.innerHTML = `
-            <input type="text" name="new_boletas[${idx}][numero]" placeholder="Número" style="width:22%">
-            <input type="text" name="new_boletas[${idx}][proveedor]" placeholder="Proveedor" style="width:28%">
-            <input type="number" step="0.01" min="0" name="new_boletas[${idx}][galones]" placeholder="Galones" style="width:12%">
-            <input type="number" step="0.01" min="0" name="new_boletas[${idx}][precio]" placeholder="Precio" style="width:12%">
-            <input type="date" name="new_boletas[${idx}][fecha]" style="width:14%">
-            <button type="button" class="btn btn-sm" onclick="removeBoletaRow(this)">Eliminar</button>
-        `;
-        container.appendChild(row);
-    };
-    window.removeBoletaRow = function(btn){ const row = btn.closest('.boleta-row'); if(row) row.remove(); };
-    window.splitIntoBoletas = function(forId){
-        const galInput = document.querySelector((forId ? '#modal-edit-consumo-' + forId : '') + ' input[name="galones"]') || document.querySelector('input[name="galones"]');
-        if(!galInput) return;
-        const total = parseFloat(galInput.value) || 0;
-        if(total <= 0) return alert('Ingresa galones en el consumo primero');
-        const parts = parseInt(prompt('¿En cuántas boletas quieres dividir los ' + total + ' galones?', '2')) || 2;
-        const share = (total / parts).toFixed(2);
-        for(let i=0;i<parts;i++) addBoletaRow(forId);
-        const container = document.getElementById(forId ? ('new-boletas-' + forId) : 'new-boletas');
-        const rows = container.querySelectorAll('.boleta-row');
-        for(let i=rows.length-parts;i<rows.length;i++){
-            const g = rows[i].querySelector('input[name*="[galones]"]'); if(g) g.value = share;
-        }
-    };
+    // (Funciones antiguas de filas de boletas removidas; se usa flujo modal nuevo)
     // Filtrar boletas por vehiculo en modal principal y modales de edición
     function applyFilterForSel(vehSel, boletasSel){
         if(!boletasSel) return;
@@ -344,4 +520,5 @@ document.addEventListener('DOMContentLoaded', function(){
     });
 });
 </script>
+ 
 @endsection
