@@ -70,72 +70,198 @@
                     </div>
                 </div>
                 <hr>
-                <h4>Boletas asociadas <small id="boletas-count-{{ $c->id }}" class="text-muted">({{ $c->boletas->count() }})</small></h4>
-                <div class="card" style="padding:12px; margin-bottom:12px">
-                    <div id="boletas-list-{{ $c->id }}" style="display:flex;flex-direction:column;gap:8px">
-                        @foreach($c->boletas as $b)
-                            <div class="card" style="padding:8px">
-                                <strong>{{ $b->numero_boleta }} - {{ $b->proveedor }}</strong>
-                                <div style="font-size:12px;color:var(--text3)">{{ number_format($b->galones,2) }} gal &middot; S/ {{ number_format($b->total ?? ($b->galones*$b->precio_galon ?? 0),2) }}</div>
-                            </div>
-                        @endforeach
+                {{-- Toggle boletas --}}
+                <label style="display:flex;align-items:center;gap:10px;padding:14px 20px;
+                                cursor:pointer;user-select:none" for="chk-boletas-{{ $c->id }}"
+                       onmouseover="this.style.background='var(--surface2)'"
+                       onmouseout="this.style.background='none'">
+                    <div style="position:relative;width:36px;height:20px;flex-shrink:0">
+                        <input type="checkbox" id="chk-boletas-{{ $c->id }}" onchange="toggleBoletasEdit(this, {{ $c->id }})"
+                               style="opacity:0;width:0;height:0;position:absolute" @checked($c->boletas->isNotEmpty())>
+                        <div id="switch-track-{{ $c->id }}"
+                             style="position:absolute;inset:0;background:{{ $c->boletas->isNotEmpty() ? '#e85d04' : 'var(--border)' }};
+                                    border-radius:20px;transition:.2s"></div>
+                        <div id="switch-thumb-{{ $c->id }}"
+                             style="position:absolute;width:14px;height:14px;left:{{ $c->boletas->isNotEmpty() ? '19px' : '3px' }};top:3px;
+                                    background:#fff;border-radius:50%;transition:.2s"></div>
                     </div>
-                    <div style="margin-top:12px;display:flex;gap:8px">
-                        <button type="button" class="btn" onclick="openNewBoletaModal({{ $c->id }})">+ Crear nueva boleta</button>
-                        <button type="button" class="btn" onclick="openAssociateBoletaModal({{ $c->id }})">+ Asociar boleta existente</button>
+                    <span style="font-size:13px;font-weight:500;display:flex;align-items:center;gap:6px">
+                        <i class="ti ti-receipt" style="font-size:16px;color:var(--text2)"></i>
+                        Asociar boletas
+                        <span id="boletas-count-{{ $c->id }}"
+                              style="display:{{ $c->boletas->isNotEmpty() ? 'inline' : 'none' }};font-size:11px;padding:2px 8px;border-radius:20px;
+                                     background:#e6f1fb;color:#185fa5">{{ $c->boletas->count() }}</span>
+                    </span>
+                    <span style="font-size:11px;color:var(--text3);margin-left:auto">Opcional</span>
+                </label>
+
+                {{-- Sección boletas (oculta por defecto si no hay boletas) --}}
+                <div id="seccion-boletas-{{ $c->id }}" style="display:{{ $c->boletas->isNotEmpty() ? 'block' : 'none' }};padding:0 20px 20px">
+                    <div style="background:var(--surface2,#f8f8f6);border:0.5px solid var(--border);
+                                border-radius:var(--radius-lg,12px);padding:12px">
+
+                        <div id="boletas-list-{{ $c->id }}" style="display:flex;flex-direction:column;gap:6px">
+                            <div id="boletas-empty-{{ $c->id }}"
+                                 style="text-align:center;padding:12px 0;color:var(--text3);font-size:12px;display:{{ $c->boletas->isEmpty() ? 'block' : 'none' }}">
+                                <i class="ti ti-receipt-off" style="font-size:20px;display:block;margin-bottom:4px"></i>
+                                Sin boletas aún
+                            </div>
+                            @foreach($c->boletas as $b)
+                                <div class="boleta-item" style="display:flex;align-items:center;gap:8px;padding:7px 10px;
+                                     background:var(--surface,#fff);border-radius:var(--radius,8px);
+                                     border:0.5px solid var(--border)">
+                                    <i class="ti ti-link" style="font-size:15px;color:var(--text2);flex-shrink:0"></i>
+                                    <div style="flex:1">
+                                        <div style="font-size:13px;font-weight:500">{{ $b->numero_boleta }}</div>
+                                        <div style="font-size:11px;color:var(--text3)">{{ $b->proveedor }} &middot; {{ number_format($b->galones,2) }} gal</div>
+                                    </div>
+                                    <button type="button" onclick="removeExistenteEdit({{ $loop->index }}, {{ $c->id }})"
+                                            style="border:none;background:none;cursor:pointer;padding:2px 6px;
+                                                   border-radius:var(--radius,8px);color:var(--text3);font-size:15px"
+                                            onmouseover="this.style.color='#a32d2d'"
+                                            onmouseout="this.style.color='var(--text3)'">
+                                        <i class="ti ti-x"></i>
+                                    </button>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <div style="height:0.5px;background:var(--border);margin:10px 0"></div>
+
+                        <div style="display:flex;gap:8px">
+                            <button type="button" class="btn" style="flex:1" onclick="toggleBoletaFormEdit('nueva', {{ $c->id }})">
+                                <i class="ti ti-plus"></i> Nueva boleta
+                            </button>
+                            <button type="button" class="btn" style="flex:1" onclick="toggleBoletaFormEdit('existente', {{ $c->id }})">
+                                <i class="ti ti-link"></i> Boleta existente
+                            </button>
+                        </div>
+
+                        {{-- Formulario inline: Nueva boleta --}}
+                        <div id="form-boleta-nueva-{{ $c->id }}"
+                             style="display:none;margin-top:10px;background:var(--surface,#fff);
+                                    border:0.5px solid var(--border);border-radius:var(--radius,8px);padding:12px">
+                            <div style="font-size:11px;font-weight:500;color:var(--text3);
+                                        text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">
+                                Crear nueva boleta
+                            </div>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Número</label>
+                                    <input type="text" id="nb_numero_{{ $c->id }}" placeholder="001-00123456">
+                                </div>
+                                <div class="form-group">
+                                    <label>Proveedor</label>
+                                    <input type="text" id="nb_proveedor_{{ $c->id }}" placeholder="Petroperu, Primax…">
+                                </div>
+                                <div class="form-group">
+                                    <label>Galones</label>
+                                    <input type="number" step="0.01" id="nb_galones_{{ $c->id }}" placeholder="0.00">
+                                </div>
+                                <div class="form-group">
+                                    <label>Precio unitario</label>
+                                    <input type="number" step="0.01" id="nb_precio_{{ $c->id }}" placeholder="0.00">
+                                </div>
+                                <div class="form-group" style="grid-column:1/-1">
+                                    <label>Fecha</label>
+                                    <input type="date" id="nb_fecha_{{ $c->id }}" value="{{ date('Y-m-d') }}">
+                                </div>
+                            </div>
+                            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
+                                <button type="button" class="btn" onclick="toggleBoletaFormEdit('nueva', {{ $c->id }})">Cancelar</button>
+                                <button type="button" class="btn btn-primary" onclick="saveNewBoletaEdit({{ $c->id }})">Guardar boleta</button>
+                            </div>
+                        </div>
+
+                        {{-- Formulario inline: Boleta existente --}}
+                        <div id="form-boleta-existente-{{ $c->id }}"
+                             style="display:none;margin-top:10px;background:var(--surface,#fff);
+                                    border:0.5px solid var(--border);border-radius:var(--radius,8px);padding:12px">
+                            <div style="font-size:11px;font-weight:500;color:var(--text3);
+                                        text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">
+                                Asociar boleta existente
+                            </div>
+
+                            {{-- Buscador --}}
+                            <div style="position:relative;margin-bottom:8px">
+                                <i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;pointer-events:none"></i>
+                                <input type="text" id="ex_search_{{ $c->id }}"
+                                       placeholder="Buscar por número, proveedor…"
+                                       autocomplete="off"
+                                       oninput="filterBoletasExistentesEdit({{ $c->id }})"
+                                       style="width:100%;padding:7px 10px 7px 32px;box-sizing:border-box">
+                            </div>
+
+                            {{-- Lista scrollable --}}
+                            <div id="ex_lista_{{ $c->id }}"
+                                 style="max-height:180px;overflow-y:auto;display:flex;flex-direction:column;
+                                        gap:4px;border:0.5px solid var(--border);border-radius:var(--radius,8px);
+                                        padding:6px;background:var(--surface2,#f8f8f6)">
+                                @forelse($boletasDisponibles ?? [] as $b)
+                                    <div class="ex-boleta-row"
+                                         data-id="{{ $b->id }}"
+                                         data-numero="{{ $b->numero_boleta }}"
+                                         data-proveedor="{{ $b->proveedor }}"
+                                         data-galones="{{ $b->galones }}"
+                                         data-search="{{ strtolower($b->numero_boleta . ' ' . $b->proveedor) }}"
+                                         data-hidden="{{ $c->boletas->contains($b->id) ? '1' : '0' }}"
+                                         onclick="selectBoletaExistenteEdit(this, {{ $c->id }})"
+                                         style="display:{{ $c->boletas->contains($b->id) ? 'none' : 'flex' }};align-items:center;gap:10px;padding:7px 10px;
+                                                border-radius:calc(var(--radius,8px) - 2px);
+                                                cursor:pointer;background:var(--surface,#fff);
+                                                border:0.5px solid transparent;transition:.15s">
+                                        <i class="ti ti-receipt" style="font-size:15px;color:var(--text3);flex-shrink:0"></i>
+                                        <div style="flex:1;min-width:0">
+                                            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                                                {{ $b->numero_boleta }}
+                                            </div>
+                                            <div style="font-size:11px;color:var(--text3)">
+                                                {{ $b->proveedor }} &middot; {{ number_format($b->galones, 2) }} gal
+                                            </div>
+                                        </div>
+                                        <i class="ti ti-circle-check ex-check" style="font-size:17px;color:transparent"></i>
+                                    </div>
+                                @empty
+                                    <div style="text-align:center;padding:16px 0;color:var(--text3);font-size:12px">
+                                        <i class="ti ti-receipt-off" style="font-size:20px;display:block;margin-bottom:4px"></i>
+                                        Sin boletas disponibles
+                                    </div>
+                                @endforelse
+                            </div>
+
+                            <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:10px">
+                                <button type="button" class="btn" onclick="toggleBoletaFormEdit('existente', {{ $c->id }})">Cancelar</button>
+                                <button type="button" class="btn btn-primary" onclick="saveExistingBoletaEdit({{ $c->id }})">Asociar</button>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
                 <div id="hidden-new-boletas-{{ $c->id }}"></div>
                 <div id="hidden-boletas-existing-{{ $c->id }}"></div>
-                <!-- Modals específicos para este consumo (crear/asociar boleta) -->
-                <div class="modal-overlay" id="modal-new-boleta-{{ $c->id }}" aria-hidden="true">
-                    <div class="modal-box modal-sm">
-                        <div class="modal-head">
-                            <div class="modal-title">Nueva boleta</div>
-                            <button type="button" class="modal-close" onclick="closeNewBoletaModal({{ $c->id }})">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="form-grid">
-                                <div class="form-group"><label>Número</label><input type="text" id="nb_numero_{{ $c->id }}"></div>
-                                <div class="form-group"><label>Proveedor</label><input type="text" id="nb_proveedor_{{ $c->id }}"></div>
-                                <div class="form-group"><label>Galones</label><input type="number" step="0.01" id="nb_galones_{{ $c->id }}"></div>
-                                <div class="form-group"><label>Precio</label><input type="number" step="0.01" id="nb_precio_{{ $c->id }}"></div>
-                                <div class="form-group"><label>Fecha</label><input type="date" id="nb_fecha_{{ $c->id }}" value="{{ date('Y-m-d') }}"></div>
-                                    <div class="form-group"><label>Evidencia (imagen/PDF)</label><input type="file" id="nb_evidencia_{{ $c->id }}" accept="image/*,.pdf"></div>
-                            </div>
-                        </div>
-                        <div class="modal-foot">
-                            <button type="button" class="btn" onclick="closeNewBoletaModal({{ $c->id }})">Cancelar</button>
-                            <button type="button" class="btn btn-primary" onclick="saveNewBoleta({{ $c->id }})">Guardar</button>
-                        </div>
-                    </div>
-                </div>
 
-                <div class="modal-overlay" id="modal-associate-boleta-{{ $c->id }}" aria-hidden="true">
-                    <div class="modal-box modal-sm">
-                        <div class="modal-head">
-                            <div class="modal-title">Asociar boleta existente</div>
-                            <button type="button" class="modal-close" onclick="closeAssociateBoletaModal({{ $c->id }})">&times;</button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="form-group">
-                                <input type="search" id="assoc_search_{{ $c->id }}" placeholder="Buscar número, proveedor..." oninput="filterExistingBoletas({{ $c->id }})">
-                            </div>
-                            <div style="max-height:260px;overflow:auto;border-top:1px solid var(--border);padding-top:8px" id="assoc_list_{{ $c->id }}">
-                                @foreach($boletas as $b)
-                                    <label style="display:block;padding:6px 4px;border-radius:6px;cursor:pointer">
-                                        <input type="checkbox" class="assoc-checkbox-{{ $c->id }}" data-id="{{ $b->id }}"> {{ $b->numero_boleta }} - {{ $b->proveedor }} - {{ optional($b->fecha)->format('d/m/Y') }}
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
-                        <div class="modal-foot">
-                            <button type="button" class="btn" onclick="closeAssociateBoletaModal({{ $c->id }})">Cancelar</button>
-                            <button type="button" class="btn btn-primary" onclick="saveAssociateSelection({{ $c->id }})">Asociar</button>
-                        </div>
-                    </div>
-                </div>
+                <script>
+                window.editModalsState = window.editModalsState || {};
+                window.editModalsState[{{ $c->id }}] = {
+                    boletasNuevas: [],
+                    boletasExistentes: [
+                        @foreach($c->boletas as $b)
+                        {
+                            id: {{ $b->id }},
+                            numero: "{{ $b->numero_boleta }}",
+                            proveedor: "{{ $b->proveedor }}",
+                            galones: {{ $b->galones ?? 0 }},
+                            total: {{ $b->total ?? ($b->galones * $b->precio_galon ?? 0) }}
+                        },
+                        @endforeach
+                    ]
+                };
+                // Initial sync to ensure that if nothing is changed but form is submitted, existing boletas stay associated
+                setTimeout(() => {
+                    syncHiddenInputsEdit({{ $c->id }});
+                }, 50);
+                </script>
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn" onclick="closeModal('modal-edit-consumo-{{ $c->id }}')">Cancelar</button>

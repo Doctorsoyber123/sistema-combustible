@@ -120,7 +120,9 @@ class ConsumoController extends Controller
         // asociar boletas existentes
         if ($request->filled('boletas_existing')) {
             $existing = array_filter((array)$request->input('boletas_existing'));
-            $consumo->boletas()->syncWithoutDetaching($existing);
+            $consumo->boletas()->sync($existing);
+        } else {
+            $consumo->boletas()->detach();
         }
 
         // crear/adjuntar nuevas boletas

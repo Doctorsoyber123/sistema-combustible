@@ -320,7 +320,10 @@
                                         padding:6px;background:var(--surface2,#f8f8f6)">
                                 @forelse($boletasDisponibles ?? [] as $b)
                                     <div class="ex-boleta-row"
+                                         data-id="{{ $b->id }}"
                                          data-numero="{{ $b->numero_boleta }}"
+                                         data-proveedor="{{ $b->proveedor }}"
+                                         data-galones="{{ $b->galones }}"
                                          data-search="{{ strtolower($b->numero_boleta . ' ' . $b->proveedor) }}"
                                          onclick="selectBoletaExistente(this)"
                                          style="display:flex;align-items:center;gap:10px;padding:7px 10px;
@@ -435,6 +438,7 @@ function renderBoletas() {
     });
 
     boletasExistentes.forEach((b, i) => {
+        const meta = [b.proveedor, b.galones ? b.galones + ' gal' : ''].filter(Boolean).join(' · ');
         list.insertAdjacentHTML('beforeend', `
             <div class="boleta-item" style="display:flex;align-items:center;gap:8px;padding:7px 10px;
                  background:var(--surface,#fff);border-radius:var(--radius,8px);
@@ -442,7 +446,7 @@ function renderBoletas() {
                 <i class="ti ti-link" style="font-size:15px;color:var(--text2);flex-shrink:0"></i>
                 <div style="flex:1">
                     <div style="font-size:13px;font-weight:500">${b.numero}</div>
-                    <div style="font-size:11px;color:var(--text3)">Boleta existente</div>
+                    <div style="font-size:11px;color:var(--text3)">${meta || 'Boleta existente'}</div>
                 </div>
                 <button type="button" onclick="removeExistente(${i})"
                         style="border:none;background:none;cursor:pointer;padding:2px 6px;
@@ -478,54 +482,78 @@ function saveNewBoleta() {
 }
 
 function selectBoletaExistente(el) {
-    // deselect all
-    document.querySelectorAll('#ex_lista .ex-boleta-row').forEach(r => {
-        r.style.background      = 'var(--surface,#fff)';
-        r.style.borderColor     = 'transparent';
-        r.querySelector('.ex-check').style.color = 'transparent';
-    });
-    // select clicked
-    el.style.background  = '#e8f5e9';
-    el.style.borderColor = '#4caf50';
-    el.querySelector('.ex-check').style.color = '#388e3c';
+    // Toggle selection on/off (multi-select)
+    const isSelected = el.dataset.selected === '1';
+    if (isSelected) {
+        el.dataset.selected = '0';
+        el.style.background  = 'var(--surface,#fff)';
+        el.style.borderColor = 'transparent';
+        el.querySelector('.ex-check').style.color = 'transparent';
+    } else {
+        el.dataset.selected = '1';
+        el.style.background  = '#e8f5e9';
+        el.style.borderColor = '#4caf50';
+        el.querySelector('.ex-check').style.color = '#388e3c';
+    }
 }
 
 function filterBoletasExistentes() {
     const q = document.getElementById('ex_search').value.toLowerCase().trim();
     document.querySelectorAll('#ex_lista .ex-boleta-row').forEach(r => {
+        // Never show rows already associated
+        if (r.dataset.hidden === '1') { r.style.display = 'none'; return; }
         r.style.display = (!q || r.dataset.search.includes(q)) ? 'flex' : 'none';
     });
 }
 
 function saveExistingBoleta() {
-    const selected = document.querySelector('#ex_lista .ex-boleta-row[style*="#e8f5e9"]');
-    if (!selected) {
-        // shake search box lightly if nothing selected
+    const allSelected = document.querySelectorAll('#ex_lista .ex-boleta-row[data-selected="1"]');
+    if (!allSelected.length) {
+        // Brief visual feedback only when nothing is selected
         const s = document.getElementById('ex_search');
         s.style.outline = '2px solid #e85d04';
-        setTimeout(() => { s.style.outline = ''; }, 1000);
+        s.focus();
+        setTimeout(() => { s.style.outline = ''; }, 800);
         return;
     }
-    const numero = selected.dataset.numero;
-    if (boletasExistentes.some(b => b.numero === numero)) {
-        toggleBoletaForm('__none__');
-        return; // already added
-    }
-    boletasExistentes.push({ numero });
-    // reset search + deselect
+    // Add all selected that are not already in the list
+    allSelected.forEach(row => {
+        const numero = row.dataset.numero;
+        const bId = parseInt(row.dataset.id);
+        const proveedor = row.dataset.proveedor;
+        const galones = row.dataset.galones;
+        if (!boletasExistentes.some(b => b.id === bId)) {
+            boletasExistentes.push({ id: bId, numero, proveedor, galones });
+        }
+        // Hide this row and deselect
+        row.dataset.selected = '0';
+        row.dataset.hidden   = '1';
+        row.style.display    = 'none';
+        row.style.background  = 'var(--surface,#fff)';
+        row.style.borderColor = 'transparent';
+        row.querySelector('.ex-check').style.color = 'transparent';
+    });
+    // Reset search
     document.getElementById('ex_search').value = '';
     filterBoletasExistentes();
-    document.querySelectorAll('#ex_lista .ex-boleta-row').forEach(r => {
-        r.style.background  = 'var(--surface,#fff)';
-        r.style.borderColor = 'transparent';
-        r.querySelector('.ex-check').style.color = 'transparent';
-    });
     toggleBoletaForm('__none__');
     renderBoletas();
 }
 
 function removeNueva(i)     { boletasNuevas.splice(i, 1);     renderBoletas(); }
-function removeExistente(i) { boletasExistentes.splice(i, 1); renderBoletas(); }
+function removeExistente(i) {
+    const removed = boletasExistentes.splice(i, 1)[0];
+    // Re-show the row in the available list
+    if (removed) {
+        document.querySelectorAll('#ex_lista .ex-boleta-row').forEach(r => {
+            if (parseInt(r.dataset.id) === removed.id) {
+                r.dataset.hidden = '0';
+                r.style.display = 'flex';
+            }
+        });
+    }
+    renderBoletas();
+}
 
 function syncHiddenInputs() {
     const cN = document.getElementById('hidden-new-boletas');
@@ -546,8 +574,222 @@ function syncHiddenInputs() {
     boletasExistentes.forEach((b, i) => {
         const inp = document.createElement('input');
         inp.type  = 'hidden';
-        inp.name  = `existing_boletas[${i}]`;
-        inp.value = b.numero;
+        inp.name  = `boletas_existing[${i}]`;
+        inp.value = b.id;
+        cE.appendChild(inp);
+    });
+}
+
+// ── Edit Modals JavaScript Helpers ──────────────────────────
+function toggleBoletasEdit(chk, id) {
+    const seccion = document.getElementById(`seccion-boletas-${id}`);
+    const track   = document.getElementById(`switch-track-${id}`);
+    const thumb   = document.getElementById(`switch-thumb-${id}`);
+    const badge   = document.getElementById(`boletas-count-${id}`);
+
+    seccion.style.display = chk.checked ? 'block' : 'none';
+    badge.style.display   = chk.checked ? 'inline' : 'none';
+    track.style.background = chk.checked ? '#e85d04' : 'var(--border)';
+    thumb.style.transform  = chk.checked ? 'translateX(16px)' : 'translateX(0)';
+
+    if (!chk.checked) {
+        window.editModalsState[id].boletasNuevas = [];
+        // When switch is turned off, also unassociate all previously associated boletas
+        window.editModalsState[id].boletasExistentes.forEach(b => {
+            document.querySelectorAll(`#ex_lista_${id} .ex-boleta-row`).forEach(r => {
+                if (parseInt(r.dataset.id) === b.id) {
+                    r.dataset.hidden = '0';
+                    r.style.display = 'flex';
+                }
+            });
+        });
+        window.editModalsState[id].boletasExistentes = [];
+        renderBoletasEdit(id);
+        ['nueva', 'existente'].forEach(t => {
+            document.getElementById(`form-boleta-${t}-${id}`).style.display = 'none';
+        });
+    }
+}
+
+function toggleBoletaFormEdit(tipo, id) {
+    ['nueva', 'existente'].forEach(t => {
+        const el = document.getElementById(`form-boleta-${t}-${id}`);
+        el.style.display = (t === tipo && el.style.display === 'none') ? 'block' : 'none';
+    });
+}
+
+function renderBoletasEdit(id) {
+    const list  = document.getElementById(`boletas-list-${id}`);
+    const empty = document.getElementById(`boletas-empty-${id}`);
+    const badge = document.getElementById(`boletas-count-${id}`);
+    const state = window.editModalsState[id];
+    const total = state.boletasNuevas.length + state.boletasExistentes.length;
+
+    badge.textContent = total;
+    list.querySelectorAll('.boleta-item').forEach(el => el.remove());
+    empty.style.display = total ? 'none' : 'block';
+
+    state.boletasNuevas.forEach((b, i) => {
+        const meta = [b.proveedor, b.galones ? b.galones + ' gal' : ''].filter(Boolean).join(' · ');
+        list.insertAdjacentHTML('beforeend', `
+            <div class="boleta-item" style="display:flex;align-items:center;gap:8px;padding:7px 10px;
+                 background:var(--surface,#fff);border-radius:var(--radius,8px);
+                 border:0.5px solid var(--border)">
+                <i class="ti ti-receipt" style="font-size:15px;color:var(--text2);flex-shrink:0"></i>
+                <div style="flex:1">
+                    <div style="font-size:13px;font-weight:500">${b.numero}</div>
+                    <div style="font-size:11px;color:var(--text3)">${meta || '—'}</div>
+                </div>
+                <button type="button" onclick="removeNuevaEdit(${i}, ${id})"
+                        style="border:none;background:none;cursor:pointer;padding:2px 6px;
+                               border-radius:var(--radius,8px);color:var(--text3);font-size:15px"
+                        onmouseover="this.style.color='#a32d2d'"
+                        onmouseout="this.style.color='var(--text3)'">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>`);
+    });
+
+    state.boletasExistentes.forEach((b, i) => {
+        const meta = [b.proveedor, b.galones ? b.galones + ' gal' : ''].filter(Boolean).join(' · ');
+        list.insertAdjacentHTML('beforeend', `
+            <div class="boleta-item" style="display:flex;align-items:center;gap:8px;padding:7px 10px;
+                 background:var(--surface,#fff);border-radius:var(--radius,8px);
+                 border:0.5px solid var(--border)">
+                <i class="ti ti-link" style="font-size:15px;color:var(--text2);flex-shrink:0"></i>
+                <div style="flex:1">
+                    <div style="font-size:13px;font-weight:500">${b.numero}</div>
+                    <div style="font-size:11px;color:var(--text3)">${meta || 'Boleta existente'}</div>
+                </div>
+                <button type="button" onclick="removeExistenteEdit(${i}, ${id})"
+                        style="border:none;background:none;cursor:pointer;padding:2px 6px;
+                               border-radius:var(--radius,8px);color:var(--text3);font-size:15px"
+                        onmouseover="this.style.color='#a32d2d'"
+                        onmouseout="this.style.color='var(--text3)'">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>`);
+    });
+
+    syncHiddenInputsEdit(id);
+}
+
+function saveNewBoletaEdit(id) {
+    const numero = document.getElementById(`nb_numero_${id}`).value.trim();
+    if (!numero) { document.getElementById(`nb_numero_${id}`).focus(); return; }
+
+    window.editModalsState[id].boletasNuevas.push({
+        numero,
+        proveedor : document.getElementById(`nb_proveedor_${id}`).value,
+        galones   : document.getElementById(`nb_galones_${id}`).value,
+        precio    : document.getElementById(`nb_precio_${id}`).value,
+        fecha     : document.getElementById(`nb_fecha_${id}`).value,
+    });
+
+    ['nb_numero','nb_proveedor','nb_galones','nb_precio'].forEach(f => {
+        document.getElementById(f + '_' + id).value = '';
+    });
+
+    toggleBoletaFormEdit('__none__', id);
+    renderBoletasEdit(id);
+}
+
+function selectBoletaExistenteEdit(el, id) {
+    const isSelected = el.dataset.selected === '1';
+    if (isSelected) {
+        el.dataset.selected = '0';
+        el.style.background  = 'var(--surface,#fff)';
+        el.style.borderColor = 'transparent';
+        el.querySelector('.ex-check').style.color = 'transparent';
+    } else {
+        el.dataset.selected = '1';
+        el.style.background  = '#e8f5e9';
+        el.style.borderColor = '#4caf50';
+        el.querySelector('.ex-check').style.color = '#388e3c';
+    }
+}
+
+function filterBoletasExistentesEdit(id) {
+    const q = document.getElementById(`ex_search_${id}`).value.toLowerCase().trim();
+    document.querySelectorAll(`#ex_lista_${id} .ex-boleta-row`).forEach(r => {
+        if (r.dataset.hidden === '1') { r.style.display = 'none'; return; }
+        r.style.display = (!q || r.dataset.search.includes(q)) ? 'flex' : 'none';
+    });
+}
+
+function saveExistingBoletaEdit(id) {
+    const allSelected = document.querySelectorAll(`#ex_lista_${id} .ex-boleta-row[data-selected="1"]`);
+    if (!allSelected.length) {
+        const s = document.getElementById(`ex_search_${id}`);
+        s.style.outline = '2px solid #e85d04';
+        s.focus();
+        setTimeout(() => { s.style.outline = ''; }, 800);
+        return;
+    }
+    const state = window.editModalsState[id];
+    allSelected.forEach(row => {
+        const numero = row.dataset.numero;
+        const bId = parseInt(row.dataset.id);
+        const proveedor = row.dataset.proveedor;
+        const galones = row.dataset.galones;
+        if (!state.boletasExistentes.some(b => b.id === bId)) {
+            state.boletasExistentes.push({ id: bId, numero, proveedor, galones });
+        }
+        row.dataset.selected = '0';
+        row.dataset.hidden   = '1';
+        row.style.display    = 'none';
+        row.style.background  = 'var(--surface,#fff)';
+        row.style.borderColor = 'transparent';
+        row.querySelector('.ex-check').style.color = 'transparent';
+    });
+    document.getElementById(`ex_search_${id}`).value = '';
+    filterBoletasExistentesEdit(id);
+    toggleBoletaFormEdit('__none__', id);
+    renderBoletasEdit(id);
+}
+
+function removeNuevaEdit(i, id) {
+    window.editModalsState[id].boletasNuevas.splice(i, 1);
+    renderBoletasEdit(id);
+}
+
+function removeExistenteEdit(i, id) {
+    const removed = window.editModalsState[id].boletasExistentes.splice(i, 1)[0];
+    if (removed) {
+        document.querySelectorAll(`#ex_lista_${id} .ex-boleta-row`).forEach(r => {
+            if (parseInt(r.dataset.id) === removed.id) {
+                r.dataset.hidden = '0';
+                r.style.display = 'flex';
+            }
+        });
+    }
+    renderBoletasEdit(id);
+}
+
+function syncHiddenInputsEdit(id) {
+    const cN = document.getElementById(`hidden-new-boletas-${id}`);
+    const cE = document.getElementById(`hidden-boletas-existing-${id}`);
+    cN.innerHTML = '';
+    cE.innerHTML = '';
+
+    const state = window.editModalsState[id];
+    if (!state) return;
+    
+    state.boletasNuevas.forEach((b, i) => {
+        ['numero','proveedor','galones','precio','fecha'].forEach(campo => {
+            const inp = document.createElement('input');
+            inp.type  = 'hidden';
+            inp.name  = `new_boletas[${i}][${campo}]`;
+            inp.value = b[campo] ?? '';
+            cN.appendChild(inp);
+        });
+    });
+
+    state.boletasExistentes.forEach((b, i) => {
+        const inp = document.createElement('input');
+        inp.type  = 'hidden';
+        inp.name  = `boletas_existing[${i}]`;
+        inp.value = b.id;
         cE.appendChild(inp);
     });
 }
